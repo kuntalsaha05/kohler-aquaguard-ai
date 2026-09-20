@@ -658,6 +658,8 @@ function renderIncidentWorkspaceView(alertId) {
   }
 
   drawIncidentFlowChart(dev?.history || []);
+  updateAcousticProfile(a.device_id);
+  highlightSchematicFault(a.root_cause);
 }
 
 function drawIncidentFlowChart(history) {
@@ -1236,8 +1238,323 @@ $("#form-passenger-feedback")?.addEventListener("submit", async (e) => {
   }
 });
 
+/* ==========================================================================
+   Complete Innovation Pack: Acoustic Hydrophone & Cavitation Oscilloscope
+   ========================================================================== */
+let audioCtx = null;
+let mainOsc = null;
+let flutterOsc = null;
+let hydroGain = null;
+let isAudioPlaying = false;
+let oscAnimId = null;
+let activeAudioProfile = {
+  fundamental_hz: 420.0,
+  harmonics_thd_pct: 2.1,
+  cavitation_screech: false,
+  flutter_frequency_hz: 0.0,
+  audio_timbre: "Laminar Flow",
+  wave_type: "sine"
+};
+
+function initOscilloscopeCanvas() {
+  const canvas = $("#acoustic-oscilloscope-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let phase = 0;
+
+  function renderWave() {
+    ctx.fillStyle = "#080B10";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Reticle Grid
+    ctx.strokeStyle = "rgba(32, 40, 51, 0.6)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 0; x < canvas.width; x += 40) {
+      ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+    }
+    for (let y = 0; y < canvas.height; y += 20) {
+      ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+    }
+    ctx.stroke();
+
+    // Center Baseline
+    const cy = canvas.height / 2;
+    ctx.strokeStyle = "rgba(0, 163, 224, 0.25)";
+    ctx.beginPath();
+    ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy);
+    ctx.stroke();
+
+    // Waveform
+    const thd = activeAudioProfile.harmonics_thd_pct || 2.1;
+    const flutter = activeAudioProfile.flutter_frequency_hz || 0;
+    const isFault = activeAudioProfile.cavitation_screech || thd > 10;
+
+    const waveColor = isFault ? "#FF4D5A" : (activeAudioProfile.wave_type === "square" ? "#F5B942" : "#35D07F");
+    ctx.strokeStyle = waveColor;
+    ctx.shadowColor = waveColor;
+    ctx.shadowBlur = isAudioPlaying ? 10 : 3;
+    ctx.lineWidth = isFault ? 2.2 : 1.8;
+
+    ctx.beginPath();
+    const amp = isAudioPlaying ? 28 : 14;
+    for (let x = 0; x < canvas.width; x++) {
+      let yVal = 0;
+      if (activeAudioProfile.wave_type === "sawtooth") {
+        yVal = Math.sin(x * 0.14 + phase) * 0.65 +
+               Math.sin(x * 0.28 + phase * 1.6) * 0.25 * (thd / 30) +
+               (Math.random() - 0.5) * 0.2;
+      } else if (activeAudioProfile.wave_type === "square") {
+        yVal = Math.sin(x * 0.05 + phase) > 0 ? 0.75 : -0.75;
+      } else {
+        yVal = Math.sin(x * 0.06 + phase);
+      }
+
+      if (flutter > 0) {
+        yVal *= (1 + 0.35 * Math.sin(x * 0.02 + phase * 0.3));
+      }
+
+      const y = cy - (yVal * amp);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    phase += isAudioPlaying ? 0.15 : 0.04;
+    oscAnimId = requestAnimationFrame(renderWave);
+  }
+
+  if (oscAnimId) cancelAnimationFrame(oscAnimId);
+  renderWave();
+}
+
+async function updateAcousticProfile(deviceId) {
+  try {
+    const p = await api.get(`/api/audio/profile/${deviceId}`);
+    activeAudioProfile = p;
+    const timbreEl = $("#ws-acoustic-timbre");
+    if (timbreEl) {
+      timbreEl.textContent = p.audio_timbre;
+      if (p.cavitation_screech) {
+        timbreEl.style.background = "rgba(255, 77, 90, 0.2)";
+        timbreEl.style.color = "#FF4D5A";
+      } else {
+        timbreEl.style.background = "#1B382B";
+        timbreEl.style.color = "#35D07F";
+      }
+    }
+    const freqEl = $("#ws-audio-freq");
+    if (freqEl) freqEl.textContent = `${Math.round(p.fundamental_hz)} Hz`;
+    const thdEl = $("#ws-audio-thd");
+    if (thdEl) thdEl.textContent = `${p.harmonics_thd_pct}%`;
+    const flutterEl = $("#ws-audio-flutter");
+    if (flutterEl) flutterEl.textContent = `${p.flutter_frequency_hz.toFixed(1)} Hz`;
+
+    // Dynamic adjustment if active
+    if (isAudioPlaying && mainOsc && audioCtx) {
+      mainOsc.frequency.setValueAtTime(p.fundamental_hz, audioCtx.currentTime);
+      mainOsc.type = p.wave_type || "sine";
+    }
+  } catch (err) {
+    console.error("Audio profile fetch error:", err);
+  }
+}
+
+function toggleHydrophoneAudio() {
+  const btn = $("#btn-toggle-hydrophone");
+  if (isAudioPlaying) {
+    stopHydrophoneAudio();
+    if (btn) btn.innerHTML = "🔊 Listen to Audio";
+    toast("Acoustic hydrophone audio muted", "info");
+    return;
+  }
+
+  try {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+
+    hydroGain = audioCtx.createGain();
+    hydroGain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+
+    mainOsc = audioCtx.createOscillator();
+    mainOsc.type = activeAudioProfile.wave_type || "sine";
+    mainOsc.frequency.setValueAtTime(activeAudioProfile.fundamental_hz || 420, audioCtx.currentTime);
+
+    if (activeAudioProfile.flutter_frequency_hz > 0) {
+      flutterOsc = audioCtx.createOscillator();
+      const flutterGain = audioCtx.createGain();
+      flutterOsc.frequency.setValueAtTime(activeAudioProfile.flutter_frequency_hz, audioCtx.currentTime);
+      flutterGain.gain.setValueAtTime(140, audioCtx.currentTime);
+      flutterOsc.connect(flutterGain);
+      flutterGain.connect(mainOsc.frequency);
+      flutterOsc.start();
+    }
+
+    mainOsc.connect(hydroGain);
+    hydroGain.connect(audioCtx.destination);
+    mainOsc.start();
+    isAudioPlaying = true;
+    if (btn) btn.innerHTML = "⏹ Stop Audio";
+    toast(`🎧 Hydrophone live: <b>${activeAudioProfile.audio_timbre}</b> (${Math.round(activeAudioProfile.fundamental_hz)} Hz)`, "good");
+  } catch (err) {
+    console.error("Web Audio error", err);
+    toast("Audio playback blocked by browser", "bad");
+  }
+}
+
+function stopHydrophoneAudio() {
+  if (mainOsc) {
+    try { mainOsc.stop(); mainOsc.disconnect(); } catch (e) {}
+    mainOsc = null;
+  }
+  if (flutterOsc) {
+    try { flutterOsc.stop(); flutterOsc.disconnect(); } catch (e) {}
+    flutterOsc = null;
+  }
+  isAudioPlaying = false;
+  const btn = $("#btn-toggle-hydrophone");
+  if (btn) btn.innerHTML = "🔊 Listen to Audio";
+}
+
+/* ==========================================================================
+   Complete Innovation Pack: Kohler Tripoint CAD Exploded Schematics
+   ========================================================================== */
+function highlightSchematicFault(rootCause) {
+  const parts = [
+    "schematic-part-body",
+    "schematic-part-diaphragm",
+    "schematic-part-solenoid",
+    "schematic-part-regulator",
+    "schematic-part-sensor"
+  ];
+  parts.forEach(id => {
+    $(`#${id}`)?.classList.remove("schematic-fault-active");
+  });
+
+  const rc = (rootCause || "").toLowerCase();
+  let faultPart = "schematic-part-diaphragm";
+  let faultDesc = "EPDM Diaphragm Tear — Bypass Orifice Blowout (GP1138930)";
+
+  if (rc.includes("solenoid") || rc.includes("phantom")) {
+    faultPart = "schematic-part-solenoid";
+    faultDesc = "24V Pulse Solenoid — Bi-Stable Latch Core Sticky (10673-SOL)";
+  } else if (rc.includes("pressure") || rc.includes("hammer")) {
+    faultPart = "schematic-part-regulator";
+    faultDesc = "Dynamic Pressure Cartridge Drift — Cavitation Screech (GP1044432)";
+  } else if (rc.includes("sensor") || rc.includes("optical")) {
+    faultPart = "schematic-part-sensor";
+    faultDesc = "Infrared Optical Sensor Eye Drift (K-13688)";
+  } else if (rc.includes("body") || rc.includes("o-ring")) {
+    faultPart = "schematic-part-body";
+    faultDesc = "Brass Main Valve Body Casting — O-Ring Groove Scored (K-10673-BODY)";
+  }
+
+  const targetEl = $(`#${faultPart}`);
+  if (targetEl) {
+    targetEl.classList.add("schematic-fault-active");
+  }
+  const textEl = $("#schematic-fault-text");
+  if (textEl) textEl.textContent = faultDesc;
+}
+
+function initSchematicInteraction() {
+  const map = {
+    "schematic-part-body": { name: "Kohler Solid Brass Body (K-10673-BODY)", info: "Rated to 125 PSI. Semi-red brass casting." },
+    "schematic-part-diaphragm": { name: "Tripoint EPDM Diaphragm (GP1138930)", info: "Molded chloramine-resistant rubber with filtered bypass." },
+    "schematic-part-solenoid": { name: "24V DC Bi-Stable Pulse Solenoid (10673-SOL)", info: "Low power magnetic latching armature." },
+    "schematic-part-regulator": { name: "Dynamic Supply Pressure Cartridge (GP1044432)", info: "Stabilizes upstream pressure surges and water hammer." },
+    "schematic-part-sensor": { name: "Optical Infrared Sensor Eye (K-13688)", info: "Dual-beam adaptive ambient distance sensor." }
+  };
+
+  Object.entries(map).forEach(([id, meta]) => {
+    const el = $(`#${id}`);
+    if (el) {
+      el.addEventListener("click", () => {
+        toast(`🔍 <b>${meta.name}</b><br><span style="font-size:11px;color:#8B96A5;">${meta.info}</span>`, "info");
+      });
+    }
+  });
+}
+
+/* ==========================================================================
+   Complete Innovation Pack: Multi-Airport Fleet Portfolio
+   ========================================================================== */
+async function loadPortfolioSummary() {
+  try {
+    const summary = await api.get("/api/portfolio/summary");
+    const portFixEl = $("#port-total-fixtures");
+    if (portFixEl) portFixEl.textContent = summary.portfolio_summary.total_fixtures.toLocaleString();
+    const portSavedEl = $("#port-daily-saved");
+    if (portSavedEl) portSavedEl.textContent = `${summary.portfolio_summary.daily_water_conserved_liters.toLocaleString()} L`;
+    const portCostEl = $("#port-monthly-cost");
+    if (portCostEl) portCostEl.textContent = `₹${summary.portfolio_summary.monthly_commercial_cost_avoided_inr.toLocaleString()}`;
+    const portHealthEl = $("#port-avg-health");
+    if (portHealthEl) portHealthEl.textContent = summary.portfolio_summary.average_health_score.toFixed(1);
+
+    const tbody = $("#port-table-body");
+    if (tbody) {
+      tbody.innerHTML = summary.airports.map(a => {
+        const isLive = a.twin_status === "live_twin";
+        const statusBadge = isLive
+          ? `<span class="badge-good" style="background:#1B382B;color:#35D07F;padding:3px 8px;border-radius:4px;font-weight:700;">LIVE TWIN</span>`
+          : `<span class="badge-tag" style="background:#141A22;color:#00A3E0;border:1px solid #202833;padding:3px 8px;border-radius:4px;">SYNTHETIC TWIN</span>`;
+        return `
+          <tr style="border-bottom:1px solid #202833;">
+            <td style="padding:10px;font-family:monospace;font-weight:800;color:#00A3E0;">#${a.national_sustainability_rank}</td>
+            <td style="padding:10px;font-weight:700;color:#F4F7FA;">${esc(a.airport_name)} <span style="font-size:11px;color:#8B96A5;">(${esc(a.city)})</span></td>
+            <td style="padding:10px;color:#CBD5E1;">${esc(a.terminals_covered)}</td>
+            <td style="padding:10px;font-family:monospace;">${a.fixtures_count}</td>
+            <td style="padding:10px;font-family:monospace;">${a.daily_pax.toLocaleString()}</td>
+            <td style="padding:10px;font-family:monospace;font-weight:700;color:#35D07F;">${a.average_fixture_health}/100</td>
+            <td style="padding:10px;font-family:monospace;font-weight:700;color:#00A3E0;">${a.daily_water_saved_liters.toLocaleString()} L</td>
+            <td style="padding:10px;font-family:monospace;color:#35D07F;">${a.sla_compliance_pct}%</td>
+            <td style="padding:10px;">${statusBadge}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+  } catch (err) {
+    console.error("Portfolio fetch error:", err);
+  }
+}
+
+function initPortfolioHandlers() {
+  $("#airport-selector")?.addEventListener("change", (e) => {
+    const val = e.target.value;
+    if (val === "PNQ") {
+      toast("✈️ Viewing <b>Pune PNQ</b> (Live Physical Sensor Twin)", "good");
+    } else if (val === "BOM") {
+      toast("✈️ Switched context to <b>Mumbai BOM T2</b> (184 Fixtures &middot; Synthetic Fleet Twin)", "info");
+      loadPortfolioSummary().then(() => $("#modal-portfolio")?.showModal());
+    } else if (val === "DEL") {
+      toast("✈️ Switched context to <b>Delhi DEL T3</b> (312 Fixtures &middot; Synthetic Fleet Twin)", "info");
+      loadPortfolioSummary().then(() => $("#modal-portfolio")?.showModal());
+    }
+  });
+
+  $("#btn-portfolio-modal")?.addEventListener("click", () => {
+    loadPortfolioSummary();
+    $("#modal-portfolio")?.showModal();
+  });
+
+  $("#btn-close-portfolio")?.addEventListener("click", () => {
+    $("#modal-portfolio")?.close();
+  });
+}
+
 /* ---------------- Initial Boot ---------------- */
 initWebSocket();
+initOscilloscopeCanvas();
+initSchematicInteraction();
+initPortfolioHandlers();
+
+$("#btn-toggle-hydrophone")?.addEventListener("click", toggleHydrophoneAudio);
 
 poll();
 setInterval(poll, 2500);
@@ -1246,4 +1563,5 @@ window.addEventListener("resize", () => {
   if (S.state && S.currentView === "command_center") drawMainFlowChart(S.state.timeseries);
   if (S.state && S.currentView === "water_intel") drawIntelFlowChart(S.state.timeseries);
 });
+
 

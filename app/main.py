@@ -18,7 +18,8 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ai, benchmarks, engine, feedback, lifecycle, mqtt_bridge, notifications, reports, sim, spares, views
+from . import ai, audio_diagnostic, benchmarks, engine, feedback, lifecycle, mqtt_bridge, notifications, portfolio, reports, sim, spares, views
+
 
 from .state import (
     SIM_INTERVAL_SECONDS,
@@ -408,6 +409,26 @@ def get_dispatch_notifications() -> list:
 @app.post("/api/notifications/test-dispatch")
 def test_dispatch_notification(req: notifications.DispatchNotificationRequest) -> dict:
     return notifications.send_dispatch_notification(req)
+
+
+# ---------------------------------------------------- Acoustic Diagnostics
+
+@app.get("/api/audio/profile/{device_id}")
+def get_device_audio_profile(device_id: str) -> dict:
+    return audio_diagnostic.get_fixture_acoustic_profile(device_id, STORE)
+
+
+# --------------------------------------------------- Multi-Airport Portfolio
+
+@app.get("/api/portfolio/airports")
+def get_portfolio_airports() -> dict:
+    return {"airports": portfolio.get_airport_list(STORE)}
+
+
+@app.get("/api/portfolio/summary")
+def get_portfolio_summary() -> dict:
+    return portfolio.get_portfolio_summary(STORE)
+
 
 
 

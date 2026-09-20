@@ -31,6 +31,12 @@
 
     <!-- Header Right Controls -->
     <div class="header-right">
+      <select class="airport-select" id="airport-selector" style="background:#10151C;border:1px solid #00A3E0;color:#F4F7FA;padding:5px 8px;border-radius:6px;font-size:12px;font-weight:700;outline:none;cursor:pointer;">
+        <option value="PNQ" selected>🏢 Pune PNQ (Live Twin)</option>
+        <option value="BOM">🏢 Mumbai BOM T2 (184 Fix)</option>
+        <option value="DEL">🏢 Delhi DEL T3 (312 Fix)</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" id="btn-portfolio-modal" title="National Airport Fleet Portfolio">🌐 Portfolio</button>
       <div class="live-indicator" id="ws-indicator">
         <span class="pulse-dot" id="ws-dot"></span>
         <span class="live-text" id="ws-text">LIVE WS</span>
@@ -44,6 +50,7 @@
       <button class="btn btn-guided-demo" id="btn-guided-demo">▶ Showcase Demo</button>
     </div>
   </header>
+
 
 
 
@@ -221,7 +228,114 @@
           </div>
           <div class="ws-loss-cost muted" id="ws-cost-loss">Cost impact: INR 0 / month (Commercial Tariff @ ₹48.50/kL)</div>
         </div>
+
+        <!-- Acoustic Hydrophone & Cavitation Oscilloscope -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>ACOUSTIC HYDROPHONE &amp; CAVITATION OSCILLOSCOPE</h3>
+            <span class="badge-tag" id="ws-acoustic-timbre" style="background:#1B382B;color:#35D07F;">Laminar Flow</span>
+          </div>
+          <div style="padding:10px;background:#080B10;border-radius:8px;border:1px solid #1C2430;margin-bottom:8px;">
+            <canvas id="acoustic-oscilloscope-canvas" width="480" height="90" style="width:100%;height:90px;background:#080B10;display:block;border-radius:4px;"></canvas>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+            <div style="display:flex;gap:12px;font-family:monospace;">
+              <span>Fund: <strong id="ws-audio-freq" style="color:#00A3E0;">420 Hz</strong></span>
+              <span>THD: <strong id="ws-audio-thd" style="color:#F5B942;">2.1%</strong></span>
+              <span>Flutter: <strong id="ws-audio-flutter" style="color:#FF4D5A;">0.0 Hz</strong></span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-toggle-hydrophone" style="display:inline-flex;align-items:center;gap:6px;">
+              🔊 Listen to Audio
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Kohler Tripoint Flushometer Exploded Schematics -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>KOHLER K-10673 TRIPOINT ARCHITECTURAL SCHEMATIC</h3>
+            <span class="badge-tag">Exploded CAD View</span>
+          </div>
+          <div style="padding:10px;background:#080B10;border-radius:8px;border:1px solid #1C2430;overflow:hidden;">
+            <svg id="svg-exploded-schematic" viewBox="0 0 480 180" width="100%" height="160" style="display:block;">
+              <defs>
+                <linearGradient id="brassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#D4AF37"/>
+                  <stop offset="100%" stop-color="#8B7326"/>
+                </linearGradient>
+                <linearGradient id="rubberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#334155"/>
+                  <stop offset="100%" stop-color="#0F172A"/>
+                </linearGradient>
+                <linearGradient id="solenoidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#1E293B"/>
+                  <stop offset="50%" stop-color="#475569"/>
+                  <stop offset="100%" stop-color="#0F172A"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Part 1: Cast Brass Main Valve Body -->
+              <g id="schematic-part-body" style="cursor:pointer;">
+                <rect x="20" y="55" width="90" height="75" rx="6" fill="url(#brassGrad)" stroke="#EAB308" stroke-width="1.5"/>
+                <rect x="35" y="130" width="60" height="25" fill="#A16207" stroke="#CA8A04" stroke-width="1"/>
+                <text x="65" y="98" fill="#FFFFFF" font-size="10" font-weight="700" text-anchor="middle">Brass Body</text>
+                <text x="65" y="112" fill="#FEF08A" font-size="8" text-anchor="middle">K-10673-BODY</text>
+              </g>
+
+              <!-- Explosion Connector Line -->
+              <line x1="110" y1="92" x2="135" y2="92" stroke="#00A3E0" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+              <!-- Part 2: Tripoint EPDM Diaphragm Assembly (Key Leak Component) -->
+              <g id="schematic-part-diaphragm" style="cursor:pointer;transition:all 0.3s ease;">
+                <circle cx="165" cy="92" r="30" fill="url(#rubberGrad)" stroke="#00A3E0" stroke-width="2"/>
+                <circle cx="165" cy="92" r="14" fill="#0284C7" stroke="#38BDF8" stroke-width="1"/>
+                <circle cx="165" cy="92" r="4" fill="#FEF08A"/>
+                <text x="165" y="138" fill="#CBD5E1" font-size="10" font-weight="700" text-anchor="middle">EPDM Diaphragm</text>
+                <text x="165" y="150" fill="#38BDF8" font-size="8" text-anchor="middle">GP1138930</text>
+              </g>
+
+              <!-- Explosion Connector Line -->
+              <line x1="195" y1="92" x2="225" y2="92" stroke="#00A3E0" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+              <!-- Part 3: 24V Pulse Solenoid Actuator -->
+              <g id="schematic-part-solenoid" style="cursor:pointer;transition:all 0.3s ease;">
+                <rect x="225" y="65" width="70" height="54" rx="4" fill="url(#solenoidGrad)" stroke="#64748B" stroke-width="1.5"/>
+                <rect x="240" y="55" width="40" height="10" fill="#B45309" stroke="#D97706"/>
+                <text x="260" y="94" fill="#FFFFFF" font-size="10" font-weight="700" text-anchor="middle">24V Solenoid</text>
+                <text x="260" y="106" fill="#94A3B8" font-size="8" text-anchor="middle">10673-SOL</text>
+              </g>
+
+              <!-- Explosion Connector Line -->
+              <line x1="295" y1="92" x2="325" y2="92" stroke="#00A3E0" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+              <!-- Part 4: Dynamic Pressure Regulator -->
+              <g id="schematic-part-regulator" style="cursor:pointer;">
+                <circle cx="355" cy="92" r="24" fill="#334155" stroke="#94A3B8" stroke-width="1.5"/>
+                <polygon points="355,75 365,95 345,95" fill="#E2E8F0"/>
+                <text x="355" y="132" fill="#CBD5E1" font-size="10" font-weight="700" text-anchor="middle">Regulator</text>
+                <text x="355" y="144" fill="#94A3B8" font-size="8" text-anchor="middle">GP1044432</text>
+              </g>
+
+              <!-- Explosion Connector Line -->
+              <line x1="380" y1="92" x2="405" y2="92" stroke="#00A3E0" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+              <!-- Part 5: Optical Sensor Eye Module -->
+              <g id="schematic-part-sensor" style="cursor:pointer;">
+                <rect x="405" y="68" width="55" height="48" rx="6" fill="#090D14" stroke="#0284C7" stroke-width="1.5"/>
+                <circle cx="422" cy="92" r="6" fill="#00A3E0"/>
+                <circle cx="442" cy="92" r="6" fill="#00A3E0"/>
+                <text x="432" y="132" fill="#CBD5E1" font-size="10" font-weight="700" text-anchor="middle">Sensor Eye</text>
+                <text x="432" y="144" fill="#38BDF8" font-size="8" text-anchor="middle">K-13688</text>
+              </g>
+            </svg>
+            <div id="schematic-fault-callout" style="font-size:11px;color:#FF4D5A;font-weight:700;margin-top:6px;display:flex;align-items:center;gap:6px;">
+              <span>⚠️ FAULT IDENTIFIED:</span>
+              <span id="schematic-fault-text" style="color:#F4F7FA;">EPDM Diaphragm Tear — Bypass Orifice Blowout</span>
+            </div>
+          </div>
+        </div>
       </div>
+
 
       <!-- Right Column: AI Sensor Fusion, Root Cause, Dispatch, and Closed-Loop Verification -->
       <div class="ws-col">
@@ -730,8 +844,68 @@
     </div>
   </dialog>
 
+  <!-- Multi-Airport Portfolio Modal -->
+  <dialog class="enterprise-dialog report-dialog" id="modal-portfolio">
+    <div class="dialog-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge-ai" style="background:#00A3E0;color:#fff;">NATIONAL FLEET</span>
+        <h3>KOHLER SMART AIRPORT PORTFOLIO &amp; SUSTAINABILITY BENCHMARK</h3>
+      </div>
+      <button class="dialog-close" id="btn-close-portfolio">&times;</button>
+    </div>
+    <div class="dialog-body" style="padding:20px;">
+      <!-- Portfolio Summary Cards -->
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px;margin-bottom:20px;">
+        <div class="card" style="padding:14px;background:#141A22;border:1px solid #202833;border-radius:8px;">
+          <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">TOTAL FIXTURES</div>
+          <div style="font-size:26px;font-weight:800;font-family:monospace;color:#F4F7FA;margin-top:4px;" id="port-total-fixtures">593</div>
+          <div style="font-size:11px;color:#8B96A5;">Across 3 major aviation hubs</div>
+        </div>
+        <div class="card" style="padding:14px;background:#141A22;border:1px solid #202833;border-radius:8px;">
+          <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">DAILY WATER CONSERVED</div>
+          <div style="font-size:26px;font-weight:800;font-family:monospace;color:#35D07F;margin-top:4px;" id="port-daily-saved">260,900 L</div>
+          <div style="font-size:11px;color:#8B96A5;">Consolidated physical conservation</div>
+        </div>
+        <div class="card" style="padding:14px;background:#141A22;border:1px solid #202833;border-radius:8px;">
+          <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">MONTHLY TARIFF SAVED</div>
+          <div style="font-size:26px;font-weight:800;font-family:monospace;color:#00A3E0;margin-top:4px;" id="port-monthly-cost">₹3,522,150</div>
+          <div style="font-size:11px;color:#8B96A5;">Commercial water avoidance</div>
+        </div>
+        <div class="card" style="padding:14px;background:#141A22;border:1px solid #202833;border-radius:8px;">
+          <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">PORTFOLIO HEALTH</div>
+          <div style="font-size:26px;font-weight:800;font-family:monospace;color:#35D07F;margin-top:4px;" id="port-avg-health">92.7</div>
+          <div style="font-size:11px;color:#8B96A5;">Average composite rating</div>
+        </div>
+      </div>
+
+      <!-- Airport Comparison Table -->
+      <div class="card" style="padding:16px;background:#141A22;border:1px solid #202833;border-radius:8px;">
+        <div style="font-size:12px;font-weight:700;color:#8B96A5;text-transform:uppercase;margin-bottom:12px;">NATIONAL AIRPORT FLEET RANKING &amp; STATUS</div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:1px solid #202833;color:#8B96A5;text-align:left;">
+              <th style="padding:10px;">Rank</th>
+              <th style="padding:10px;">Airport Facility</th>
+              <th style="padding:10px;">Terminal Focus</th>
+              <th style="padding:10px;">Fixtures</th>
+              <th style="padding:10px;">Daily Pax</th>
+              <th style="padding:10px;">Health Index</th>
+              <th style="padding:10px;">Water Saved / Day</th>
+              <th style="padding:10px;">SLA Met</th>
+              <th style="padding:10px;">Twin Status</th>
+            </tr>
+          </thead>
+          <tbody id="port-table-body">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Toast Stack -->
   <div class="toasts" id="toasts"></div>
+
 
 
 

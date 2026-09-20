@@ -1614,3 +1614,48 @@ h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: v
   padding-top: 10px;
 }
 
+/* ==========================================================================
+   Complete Innovation Pack: Exploded Schematics, Hydrophone, & Portfolio
+   ========================================================================== */
+@keyframes faultPulse {
+  0% { filter: drop-shadow(0 0 3px #FF4D5A); }
+  50% { filter: drop-shadow(0 0 16px #FF4D5A); }
+  100% { filter: drop-shadow(0 0 3px #FF4D5A); }
+}
+
+.schematic-fault-active {
+  animation: faultPulse 1.2s infinite ease-in-out !important;
+}
+
+.schematic-part {
+  transition: transform 0.25s ease, filter 0.25s ease;
+  cursor: pointer;
+}
+
+.schematic-part:hover {
+  filter: brightness(1.25) drop-shadow(0 0 8px rgba(0, 163, 224, 0.6));
+}
+
+#svg-exploded-schematic {
+  user-select: none;
+}
+
+#modal-portfolio table th {
+  border-bottom: 1px solid #202833;
+  padding: 10px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#modal-portfolio table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+#modal-portfolio table tr:hover td {
+  background: rgba(0, 163, 224, 0.06);
+}
+
+
