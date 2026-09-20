@@ -220,7 +220,13 @@ def get_alerts(status: Optional[str] = None) -> dict:
 def resolve_alert(alert_id: str) -> dict:
     alert = engine.resolve_alert(STORE, alert_id)
     if not alert:
-        raise HTTPException(404, "Open alert not found")
+        clean_id = alert_id.replace("INC-", "")
+        existing = next((a for a in STORE.alerts if a.id == clean_id or a.id == alert_id or a.device_id == alert_id), None)
+        if existing:
+            return {"resolved": existing.id,
+                    "resolution_note": existing.resolution_note or f"Maintenance verified and closed for {existing.id}.",
+                    "saved_month_liters": round(STORE.saved_month_liters, 1)}
+        raise HTTPException(404, "Alert not found")
     return {"resolved": alert.id,
             "resolution_note": alert.resolution_note,
             "saved_month_liters": round(STORE.saved_month_liters, 1)}
@@ -473,6 +479,8 @@ def inject_scenario(scenario: str, device_id: Optional[str] = None) -> dict:
     except ValueError as exc:
         raise HTTPException(400, str(exc))
     STORE.dirty = True
+    events = sim.generate_tick(STORE)
+    engine.process_events(STORE, events)
     return {"injected": True, "sim_minutes": STORE.tick_count, **result}
 
 

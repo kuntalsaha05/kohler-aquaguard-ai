@@ -44,6 +44,7 @@ def facility_snapshot(store: Store) -> dict:
                                   if sc.get("device_id") == d.device_id or
                                   (sc.get("devices") and any(x["device_id"] == d.device_id for x in sc["devices"]))), None),
                 "flow_series": [h["flow"] for h in list(d.history)[-24:]],
+                "history": list(d.history)[-30:],
             })
         has_critical = any(x["status"] == "critical" for x in dev_out)
         status = "critical" if (has_critical or zone.cleaning_required and zone.usage_since_cleaning > zone.threshold * 1.1) else \
@@ -53,6 +54,12 @@ def facility_snapshot(store: Store) -> dict:
             "status": status,
             "devices": dev_out,
         })
+
+    devices_dict = {
+        d["device_id"]: d
+        for z in zones_out
+        for d in z["devices"]
+    }
 
     open_alerts = [a for a in store.alerts if a.status == "OPEN"]
     high_risk = [d for d in store.devices.values() if d.risk == "HIGH"]
@@ -65,6 +72,18 @@ def facility_snapshot(store: Store) -> dict:
     open_tickets = [t for t in store.tickets if t.status == "OPEN"]
     health_hier = facility_health_hierarchy(store)
     heatmap_data = water_waste_heatmap(store)
+
+    alerts_list = []
+    for a in reversed(store.alerts[-40:]):
+        ad = a.model_dump(mode="json")
+        ad["alert_id"] = a.id
+        alerts_list.append(ad)
+
+    tickets_list = []
+    for t in reversed(store.tickets[-30:]):
+        td = t.model_dump(mode="json")
+        td["id"] = t.ticket_id
+        tickets_list.append(td)
 
     return {
         "facility": {
@@ -93,8 +112,9 @@ def facility_snapshot(store: Store) -> dict:
         "facility_health": health_hier,
         "heatmap": heatmap_data,
         "zones": zones_out,
-        "alerts": [a.model_dump(mode="json") for a in reversed(store.alerts[-40:])],
-        "tickets": [t.model_dump(mode="json") for t in reversed(store.tickets[-30:])],
+        "devices": devices_dict,
+        "alerts": alerts_list,
+        "tickets": tickets_list,
         "incidents": [i.model_dump(mode="json") for i in reversed(store.incidents[-30:])],
         "scenarios": [
             {"kind": kind, **{k: v for k, v in sc.items() if k not in ("started_tick",)}}

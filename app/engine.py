@@ -723,7 +723,8 @@ def _decay_health(store: Store) -> None:
 # ------------------------------------------------------------- resolution
 
 def resolve_alert(store: Store, alert_id: str) -> Optional[Alert]:
-    alert = next((a for a in store.alerts if a.id == alert_id and a.status == "OPEN"), None)
+    clean_id = alert_id.replace("INC-", "")
+    alert = next((a for a in store.alerts if (a.id == clean_id or a.id == alert_id or a.device_id == alert_id) and a.status == "OPEN"), None)
     if not alert:
         return None
     alert.status = "RESOLVED"
@@ -810,6 +811,7 @@ def _service_reset(dev) -> None:
     starts fresh, so a just-fixed device is not immediately flagged by the
     predictive layer on its own stale history."""
     dev.history.clear()
+    dev.flow_lpm = 0.0
     dev.episode_min = 0
     dev.sensor_errors = 0
     dev.health_score = 100
@@ -819,6 +821,7 @@ def _service_reset(dev) -> None:
     dev.anomaly_frequency = 0
     dev.flush_irregularity = 0
     dev.health_degraded_once = False
+    dev.history.append({"flow": 0.0, "occ": 0, "pressure": 3.0, "ts": utcnow().isoformat()})
 
 
 def _end_scenario(store: Store, device_id: str) -> None:

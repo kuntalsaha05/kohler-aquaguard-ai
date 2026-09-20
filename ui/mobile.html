@@ -250,7 +250,7 @@
         return `
           <div class="order-card ${isP1 ? 'p1' : 'p2'}">
             <div class="order-top">
-              <span class="order-id">${a.alert_id}</span>
+              <span class="order-id">${a.id || a.alert_id}</span>
               <span class="priority-tag ${isP1 ? 'p1' : 'p2'}">${a.priority} URGENT</span>
             </div>
             <div>
@@ -273,7 +273,7 @@
               <span style="color:var(--muted);">SLA Countdown:</span>
               <span style="color:${isP1 ? 'var(--critical)' : 'var(--warning)'};font-weight:700;">${Math.max(1, Math.round((a.sla_remaining_seconds || 600) / 60))}m remaining</span>
             </div>
-            <button class="btn-action" onclick="executeRepair('${a.alert_id}')">
+            <button class="btn-action" onclick="executeRepair('${a.id || a.alert_id}')">
               🔧 Execute Repair &amp; Verify
             </button>
           </div>
