@@ -665,9 +665,231 @@ You operate under the following seven inviolable operational constraints:
         story.append(make_card(q, [Paragraph(a, body_style)], badge=badge, badge_color=SUCCESS_GREEN))
         story.append(Spacer(1, 6))
 
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 11: Developer Meta-Prompts — Simulator & Dual-Layer Detection Engine
+    # =========================================================================
+    story.append(Paragraph("Developer Meta-Prompts: Digital Twin &amp; Engine", title_style))
+    story.append(Paragraph("Architectural synthesis prompts used to construct the digital twin and detection pipeline", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 1: Digital Twin Hydraulic Simulator Synthesis", h2_style))
+    story.append(Spacer(1, 4))
+    sim_meta = """Design and implement an in-memory, zero-dependency Python Digital Twin simulator
+modeling commercial airport restroom plumbing infrastructure for Pune International Airport (PNQ).
+Requirements:
+1. Model 97 instrumented fixtures: 48 flush valves (K-10673), 32 urinals, 17 auto faucets.
+2. Distribute across 12 restrooms in 4 terminals: Terminal 1, Terminal 2, Terminal 3, Arrivals.
+3. Simulate realistic airport passenger traffic curves with morning, afternoon, and evening flight banks.
+4. For each fixture, maintain stateful parameters: flow_lpm, static/dynamic pressure_bar (nominal 3.0),
+   optical IR distance occupancy, cumulative flush count, battery voltage, and health score (0-100).
+5. Support scenario injection methods: continuous leak (diaphragm tear), phantom flush (solenoid drift),
+   sensor failure (flatline), device degradation (cycle fatigue), and passenger occupancy spikes.
+6. Execute deterministically every 2 seconds (1 tick = 1 sim minute) without blocking asyncio loops."""
+    story.append(make_code_table(sim_meta, font_size=7.2, lead=9.2))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 2: Dual-Layer Detection &amp; Multimodal Sensor Fusion", h2_style))
+    story.append(Spacer(1, 4))
+    engine_meta = """Build a high-precision, low-latency dual-layer anomaly detection and sensor fusion engine.
+Layer 1 (Deterministic Rules):
+- Continuous Leak: Trigger if flow > 0.5 L/min AND occupancy == 0 AND flushes == 0 for >= 3 minutes.
+- Phantom Flush: Trigger if flow pulses > 5.0 L/min for 3-5 seconds without traveler occupancy.
+- Sensor Freeze: Trigger if optical occupancy == 1 for > 30 minutes with zero flush actuation.
+Layer 2 (Multimodal Fusion Model):
+- Compute 0-100 Anomaly Score via multi-factor weighting: Flow Deviation vs Diurnal Baseline (30%),
+  Occupancy Mismatch (20%), Acoustic Hydrophone Flutter (15%), Pressure Drop (15%), Traveler QR (20%).
+- Calculate Bayesian Leak Confidence (0.0 to 1.0).
+- Quantify water loss: Daily Liters = flow_lpm * 1440; Monthly Liters = Daily * 30.
+- Calculate cost impact using commercial municipal tariff rate (₹48.50 per 1,000 Liters)."""
+    story.append(make_code_table(engine_meta, font_size=7.2, lead=9.2))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 12: Developer Meta-Prompts — Hydrophone & Vector CAD Schematics
+    # =========================================================================
+    story.append(Paragraph("Developer Meta-Prompts: Hydrophone &amp; CAD Schematics", title_style))
+    story.append(Paragraph("Physics-based acoustic synthesis and architectural CAD vector visualization prompts", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 3: Acoustic Hydrophone Cavitation Audio &amp; Oscilloscope", h2_style))
+    story.append(Spacer(1, 4))
+    audio_meta = """Implement an industrial acoustic hydrophone telemetry synthesizer and real-time visualizer:
+1. Backend Profile Generator:
+   - For nominal fixtures: 420 Hz fundamental sine wave, 2.1% THD (Laminar Full Flush).
+   - For diaphragm tear leaks: 2,420 Hz turbulent screech, 14.5 Hz flutter, 38.4% THD (Cavitation).
+   - For solenoid phantom cycling: 120 Hz electrical latch hum, square wave harmonics.
+   - For quiescent baseline: 0 Hz electronic sensor thermal noise floor.
+2. Frontend Web Audio API & Canvas Oscilloscope:
+   - Create browser AudioContext with OscillatorNode, GainNode, and LFO flutter modulation.
+   - Render a real-time oscilloscope canvas (480x90) with subtle reticle grid and center baseline.
+   - Dynamically transition wave color from cyan (#00A3E0) to warning red (#FF4D5A) upon cavitation."""
+    story.append(make_code_table(audio_meta, font_size=7.2, lead=9.2))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 4: Interactive Kohler K-10673 CAD Exploded Schematics", h2_style))
+    story.append(Spacer(1, 4))
+    cad_meta = """Create an architectural vector SVG exploded diagram modeling the Kohler K-10673 Tripoint Flushometer:
+Components to render:
+1. Solid Brass Valve Body Casting (K-10673-BODY)
+2. Tripoint EPDM Molded Diaphragm Assembly with bypass filter (GP1138930)
+3. 24V DC Bi-Stable Pulse Solenoid Actuator (10673-SOL)
+4. Dynamic Supply Pressure Cartridge & Regulator (GP1044432)
+5. Infrared Optical Sensor Eye Module (K-13688)
+Interactive Behavior:
+- Connect exploded parts with dashed CAD dimension lines.
+- When an incident is active, inspect root_cause and apply CSS keyframe glow animation (.schematic-fault-active)
+  to pulse the exact faulty mechanical component in red.
+- Clicking any part opens an engineering spec callout displaying part number, price, and depot shelf location."""
+    story.append(make_code_table(cad_meta, font_size=7.2, lead=9.2))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 13: Developer Meta-Prompts — Portfolio & Scope 2/3 Carbon Nexus
+    # =========================================================================
+    story.append(Paragraph("Developer Meta-Prompts: Fleet Portfolio &amp; Carbon Nexus", title_style))
+    story.append(Paragraph("Multi-facility aggregation and institutional greenhouse gas accounting prompts", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 5: Multi-Airport Fleet Portfolio &amp; National Benchmarking", h2_style))
+    story.append(Spacer(1, 4))
+    port_meta = """Create a multi-airport fleet aggregation engine for aviation facility directors:
+Airports to model:
+1. Pune International Airport (PNQ): Live Digital Twin, 97 fixtures, 28,400 daily pax, ₹443k/mo saved.
+2. Mumbai Chhatrapati Shivaji T2 (BOM): Synthetic Fleet Twin, 184 fixtures, 74,000 daily pax, ₹1.25M/mo saved.
+3. Delhi Indira Gandhi T3 (DEL): Synthetic Fleet Twin, 312 fixtures, 142,000 daily pax, ₹1.83M/mo saved.
+Outputs:
+- Consolidated national metrics: 593 fixtures, 260,900 L/day conserved, ₹3.52M/month in tariff avoidance.
+- Header dropdown switcher enabling instant context switching between airports.
+- Benchmark dialog displaying national sustainability ranking table and composite facility health comparison."""
+    story.append(make_code_table(port_meta, font_size=7.2, lead=9.2))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 6: Scope 2/3 GHG Carbon Nexus &amp; LEED Scorecard", h2_style))
+    story.append(Spacer(1, 4))
+    esg_meta = """Implement an institutional ESG water-energy nexus and green building rating engine:
+Constants (Central Electricity Authority CEA India Database):
+- Municipal water pumping energy intensity: 1.82 kWh per 1,000 Liters (kL).
+- CEA Grid emission factor: 0.82 kg CO2e per kWh -> 1.4924 kg CO2e per kL avoided.
+- Tree absorption: 21.8 kg CO2 per tree-year; Tanker truck capacity: 12,000 Liters.
+LEED v4.1 Operations & Maintenance Scorecard:
+- WE Prerequisite 1: Indoor Water Use Reduction (20% Baseline) -> Compliant (>45% achieved).
+- WE Credit 1: Indoor Water Efficiency -> 5/6 Points.
+- WE Credit 2: Water Sub-metering & AI Monitoring -> 2/2 Points.
+- EA Credit 1: Pumping Energy Reduction -> 4/5 Points.
+- Output: Composite Score 92/100 (LEED Platinum Ready).
+- Generate verifiable digital certificate with cryptographic SHA-256 validation seal."""
+    story.append(make_code_table(esg_meta, font_size=7.2, lead=9.2))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 14: Developer Meta-Prompts — CMMS Work Order & Weibull Lifecycle
+    # =========================================================================
+    story.append(Paragraph("Developer Meta-Prompts: CMMS &amp; Weibull Lifecycle", title_style))
+    story.append(Paragraph("Maximo work order formatting and mathematical mechanical fatigue modeling prompts", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 7: IBM Maximo &amp; SAP PM CMMS Work Order Generator", h2_style))
+    story.append(Spacer(1, 4))
+    cmms_meta = """Build an industrial Computerized Maintenance Management System (CMMS) work order generator
+compatible with IBM Maximo Asset Management (v7.6.1) and SAP Plant Maintenance (PM).
+Fields:
+- Work Order Number: WO-2026-XXXXX
+- Asset Tag: KOHLER-{device_id}; Functional Location: PNQ-T2-R14-STALL-03
+- Failure Code: CONTINUOUS_LEAK; Safety Mandate: Level 2 Domestic Water System Lockout/Tagout (LOTO)
+- Required Spare: Kohler OEM part number, price, and reserved storage location
+- Job Plan: 8 numbered sequential steps (isolate stopcock, remove flange, replace diaphragm, torque 18 Nm, verify flow)
+- Aviation barcode scan code & technician digital signature block
+- 1-click printable job card modal."""
+    story.append(make_code_table(cmms_meta, font_size=7.2, lead=9.2))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 8: Weibull Asset Lifecycle Hazard Rate Modeler", h2_style))
+    story.append(Spacer(1, 4))
+    weibull_meta = """Formulate an asset lifecycle degradation and predictive maintenance model for solenoid flushometers:
+1. Cycle Wear Metric: Completed actuations vs 500,000 rated cycle lifetime.
+2. Weibull Hazard Rate Formulation:
+   - Shape parameter beta = 2.8 (mechanical wear-out regime), scale parameter eta = 500,000 cycles.
+   - Cumulative failure risk: R(t) = 1 - exp(-((cycles + delta_7d) / eta)^beta).
+3. Vibration Chatter Index (0 to 100): Quantify armature micro-bounce and water hammer transient spikes.
+4. Output: Fleet degradation overview ranking top-5 at-risk assets with recommended preventive intervention."""
+    story.append(make_code_table(weibull_meta, font_size=7.2, lead=9.2))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 15: Developer Meta-Prompts — Passenger QR Fusion & Ops Center UI
+    # =========================================================================
+    story.append(Paragraph("Developer Meta-Prompts: Traveler QR &amp; UI Design", title_style))
+    story.append(Paragraph("Multimodal traveler crowd-sensing fusion and high-contrast control room design prompts", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 9: Multimodal Passenger QR Feedback Ingestion &amp; Fusion", h2_style))
+    story.append(Spacer(1, 4))
+    qr_meta = """Design a traveler mobile feedback ingestion engine that boosts physical sensor confidence:
+1. API Endpoint: POST /api/feedback accepting restroom_id, issue_category, stall_number, and optional comment.
+2. Multimodal Matching Logic:
+   - Match reported restroom and stall to active device in digital twin.
+   - If device has an open anomaly alert, apply a +15% Bayesian fusion boost to leak confidence (capped at 0.99).
+   - If priority was P2, escalate to P1 due to traveler visibility and public brand impact.
+3. Return confirmation payload showing elevated confidence and matched device ID."""
+    story.append(make_code_table(qr_meta, font_size=7.2, lead=9.2))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("PROMPT 10: Industrial High-Contrast Dark-Theme Ops Center UI", h2_style))
+    story.append(Spacer(1, 4))
+    ui_meta = """Redesign the AquaGuard frontend into a research-grade commercial facility command center.
+Visual Language:
+- Palette: Dark control-room theme (Background #080B10, Panels #10151C, Borders #202833).
+- Primary Text: #F4F7FA; Muted Text: #8B96A5; Kohler Accent: #00A3E0.
+- State Colors: Normal #35D07F, Warning #F5B942, Critical #FF4D5A.
+- Layout: Spatial Facility Twin Map, Terminal Status Cards, 24-Hour Diurnal Timeline Canvas,
+  Dedicated Incident Workspace with OEM spare cards, CAD schematics, and closed-loop verification stepper.
+- Responsive, zero npm build step, pure ES6 HTML/CSS/JS served directly via FastAPI."""
+    story.append(make_code_table(ui_meta, font_size=7.2, lead=9.2))
+
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 16: Custom Specialized AI Prompts for Facility Operations
+    # =========================================================================
+    story.append(Paragraph("Custom Operational Prompts for Facility Teams", title_style))
+    story.append(Paragraph("Specialized operational prompt templates designed for facility directors and plumbing leads", subtitle_style))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("CUSTOM PROMPT 1: Automated Shift-Handoff Intelligence Briefing", h2_style))
+    story.append(Spacer(1, 4))
+    custom1 = """[CONTEXT: Facility Health Hierarchy, Open Incidents, Resolved Ledger, Spares Depletion]
+You are AquaGuard AI. Compose an executive Shift-Handoff Briefing for the incoming Terminal Facilities Lead:
+1. Executive Summary: 1-sentence composite health rating and open P1/P2 count.
+2. Active Critical Incidents: Device ID, location, root cause, assigned technician, and SLA minutes remaining.
+3. Closed-Loop Achievements: Water volume banked to ledger during the outgoing shift and commercial savings.
+4. OEM Spares Advisory: Depot parts with inventory <= 3 units requiring procurement requisition.
+5. High-Risk Assets: Top 2 fixtures exhibiting > 70% Weibull 7-day failure probability.
+Tone: Crisp, military-grade operational brevity. Use markdown bullet points with bold metrics."""
+    story.append(make_code_table(custom1, font_size=7.2, lead=9.2))
+    story.append(Spacer(1, 10))
+
+    story.append(Paragraph("CUSTOM PROMPT 2: Contractor SLA Breach Enforcement &amp; Escalation", h2_style))
+    story.append(Spacer(1, 4))
+    custom2 = """[CONTEXT: Incident ID, Device ID, Zone, Assigned Technician, Current SLA Remaining Seconds]
+The SLA countdown for incident {{incident_id}} on fixture {{device_id}} has reached {{sla_seconds}} seconds.
+Generate an automated emergency CAD dispatch escalation payload:
+1. Broadcast high-priority SMS/WhatsApp alert to Plumbing Supervisor:
+   "URGENT: P1 SLA Breach Imminent on {{device_id}} ({{zone}}). Unmitigated loss: {{flow_lpm}} L/min.
+   Technician {{tech_name}} has not verified arrival. Backup specialist required immediately."
+2. Log breach warning to official compliance audit log with ISO timestamp.
+3. Surface priority dispatch banner in AI Command Center dashboard."""
+    story.append(make_code_table(custom2, font_size=7.2, lead=9.2))
+
     doc.build(story, canvasmaker=NumberedCanvas)
     print(f"Successfully generated {PDF_PATH} ({os.path.getsize(PDF_PATH)} bytes)")
 
 
 if __name__ == "__main__":
     generate_pdf()
+
