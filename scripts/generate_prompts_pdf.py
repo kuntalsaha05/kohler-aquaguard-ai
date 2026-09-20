@@ -2,6 +2,7 @@
 
 Generates a publication-grade, 10-page PDF document detailing all AI prompts,
 system instructions, reasoning architectures, and workflows for Track 2.
+Uses ultra-crisp, high-contrast, professional corporate styling.
 """
 
 import os
@@ -10,27 +11,27 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, KeepTogether, HRFlowable
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
 )
 from reportlab.pdfgen import canvas
 
 PDF_PATH = os.path.join("docs", "KOHLER_AquaGuard_Prompts.pdf")
 
-# Palette
-DARK_BG = colors.HexColor("#080B10")
-PANEL_BG = colors.HexColor("#10151C")
-BORDER_COLOR = colors.HexColor("#202833")
-PRIMARY_TEXT = colors.HexColor("#F4F7FA")
-MUTED_TEXT = colors.HexColor("#8B96A5")
-KOHLER_CYAN = colors.HexColor("#00A3E0")
-ALERT_RED = colors.HexColor("#FF4D5A")
-SUCCESS_GREEN = colors.HexColor("#35D07F")
-WARN_AMBER = colors.HexColor("#F5B942")
-CARD_BG = colors.HexColor("#141A22")
-CODE_BG = colors.HexColor("#0C1017")
+# High-Contrast Professional Palette
+PRIMARY_TEXT = colors.HexColor("#0F172A")    # Deep Slate / Charcoal
+TITLE_COLOR = colors.HexColor("#0A2540")     # Deep Corporate Navy
+MUTED_TEXT = colors.HexColor("#475569")      # Dark Slate Muted
+KOHLER_BLUE = colors.HexColor("#0077B6")     # Kohler Brand Blue
+BORDER_COLOR = colors.HexColor("#CBD5E1")    # Subtle Crisp Border
+CARD_BG = colors.HexColor("#F8FAFC")         # Very light crisp background
+CODE_BG = colors.HexColor("#F1F5F9")         # Clean code block background
+ALERT_RED = colors.HexColor("#DC2626")       # High-contrast Alert Red
+SUCCESS_GREEN = colors.HexColor("#059669")   # High-contrast Green
+WARN_AMBER = colors.HexColor("#D97706")      # Amber
 
 
 class NumberedCanvas(canvas.Canvas):
+    """Two-pass canvas to dynamically compute and print 'Page X of Y' without painting over content."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._saved_page_states = []
@@ -43,45 +44,45 @@ class NumberedCanvas(canvas.Canvas):
         num_pages = len(self._saved_page_states)
         for state in self._saved_page_states:
             self.__dict__.update(state)
-            self.draw_page_decorations(num_pages)
+            self.draw_decorations(num_pages)
             super().showPage()
         super().save()
 
-    def draw_page_decorations(self, total_pages):
+    def draw_decorations(self, total_pages):
         self.saveState()
-        # Background
-        self.setFillColor(DARK_BG)
-        self.rect(0, 0, 8.5 * inch, 11 * inch, fill=1, stroke=0)
-
-        # Header rule & text
+        # Top Header Rule
         self.setStrokeColor(BORDER_COLOR)
-        self.setLineWidth(1)
-        self.line(0.5 * inch, 10.4 * inch, 8.0 * inch, 10.4 * inch)
+        self.setLineWidth(0.8)
+        self.line(0.5 * inch, 10.45 * inch, 8.0 * inch, 10.45 * inch)
 
+        # Top Header Text
         self.setFont("Helvetica-Bold", 8)
-        self.setFillColor(KOHLER_CYAN)
-        self.drawString(0.5 * inch, 10.5 * inch, "KOHLER AQUAGUARD AI")
+        self.setFillColor(KOHLER_BLUE)
+        self.drawString(0.5 * inch, 10.55 * inch, "KOHLER AQUAGUARD AI")
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(2.3 * inch, 10.5 * inch, "·  Track 2 Smart Facility & Sustainability Manager  ·  AI Prompts & Workflow")
+        self.drawString(2.1 * inch, 10.55 * inch, "·  Track 2 Smart Facility & Sustainability Manager  ·  AI Prompts & Reasoning")
 
-        # Footer rule & text
+        # Bottom Footer Rule
         self.setStrokeColor(BORDER_COLOR)
-        self.setLineWidth(1)
+        self.setLineWidth(0.8)
         self.line(0.5 * inch, 0.65 * inch, 8.0 * inch, 0.65 * inch)
 
+        # Bottom Footer Text
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(0.5 * inch, 0.45 * inch, "CONFIDENTIAL  ·  KOHLER-MITWPU INNOVATION HACKATHON TRACK 2  ·  RESEARCH DOCUMENTATION")
+        self.drawString(0.5 * inch, 0.45 * inch, "CONFIDENTIAL  ·  KOHLER-MITWPU INNOVATION HACKATHON TRACK 2  ·  RESEARCH SPECIFICATION")
 
         page_str = f"Page {self._pageNumber} of {total_pages}"
+        self.setFont("Helvetica-Bold", 8)
+        self.setFillColor(PRIMARY_TEXT)
         self.drawRightString(8.0 * inch, 0.45 * inch, page_str)
         self.restoreState()
 
 
-def make_code_table(code_str, font_size=8, lead=10):
+def make_code_table(code_str, font_size=8, lead=10.5):
     lines = code_str.strip().split("\n")
-    data = [[Paragraph(f"<font color='#00A3E0'><b>{i+1:02d}</b></font>  <font color='#CBD5E1'>{line.replace(' ', '&nbsp;')}</font>",
+    data = [[Paragraph(f"<font color='#0077B6'><b>{i+1:02d}</b></font>&nbsp;&nbsp;<font color='#0F172A'>{line.replace(' ', '&nbsp;')}</font>",
                        ParagraphStyle('code_line', fontName='Courier', fontSize=font_size, leading=lead))]
             for i, line in enumerate(lines)]
     t = Table(data, colWidths=[7.0 * inch])
@@ -96,14 +97,14 @@ def make_code_table(code_str, font_size=8, lead=10):
     return t
 
 
-def make_card(title, body_paragraphs, badge=None, badge_color=KOHLER_CYAN):
+def make_card(title, body_paragraphs, badge=None, badge_color=KOHLER_BLUE):
     badge_html = f"<font color='{badge_color.hexval()}'><b>[{badge}]</b></font> " if badge else ""
-    header = Paragraph(f"{badge_html}<font color='#F4F7FA'><b>{title}</b></font>",
+    header = Paragraph(f"{badge_html}<font color='#0A2540'><b>{title}</b></font>",
                        ParagraphStyle('card_h', fontName='Helvetica-Bold', fontSize=10, leading=14))
     cell_content = [header, Spacer(1, 4)] + body_paragraphs
     t = Table([[cell_content]], colWidths=[7.0 * inch])
     t.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), PANEL_BG),
+        ('BACKGROUND', (0, 0), (-1, -1), CARD_BG),
         ('BOX', (0, 0), (-1, -1), 1, BORDER_COLOR),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
@@ -119,17 +120,16 @@ def generate_pdf():
         pagesize=letter,
         leftMargin=0.5 * inch,
         rightMargin=0.5 * inch,
-        topMargin=0.8 * inch,
-        bottomMargin=0.8 * inch,
+        topMargin=0.75 * inch,
+        bottomMargin=0.75 * inch,
     )
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', fontName='Helvetica-Bold', fontSize=18, leading=22, textColor=PRIMARY_TEXT)
-    subtitle_style = ParagraphStyle('Sub', fontName='Helvetica', fontSize=10, leading=14, textColor=MUTED_TEXT)
-    h2_style = ParagraphStyle('H2', fontName='Helvetica-Bold', fontSize=13, leading=17, textColor=KOHLER_CYAN)
-    h3_style = ParagraphStyle('H3', fontName='Helvetica-Bold', fontSize=10.5, leading=14, textColor=PRIMARY_TEXT)
-    body_style = ParagraphStyle('Body', fontName='Helvetica', fontSize=8.5, leading=12, textColor=PRIMARY_TEXT)
-    bullet_style = ParagraphStyle('Bullet', fontName='Helvetica', fontSize=8.5, leading=12, textColor=PRIMARY_TEXT, leftIndent=12)
+    title_style = ParagraphStyle('DocTitle', fontName='Helvetica-Bold', fontSize=18, leading=22, textColor=TITLE_COLOR)
+    subtitle_style = ParagraphStyle('DocSub', fontName='Helvetica', fontSize=9.5, leading=13, textColor=MUTED_TEXT)
+    h2_style = ParagraphStyle('DocH2', fontName='Helvetica-Bold', fontSize=12.5, leading=16, textColor=KOHLER_BLUE)
+    body_style = ParagraphStyle('DocBody', fontName='Helvetica', fontSize=8.5, leading=12, textColor=PRIMARY_TEXT)
+    bullet_style = ParagraphStyle('DocBullet', fontName='Helvetica', fontSize=8.5, leading=12, textColor=PRIMARY_TEXT, leftIndent=12)
 
     story = []
 
@@ -177,18 +177,18 @@ def generate_pdf():
     story.append(Spacer(1, 6))
 
     col1 = [
-        Paragraph("<b>1. Absolute Numerical Grounding</b><br/><font color='#8B96A5'>Every volume, flow rate, financial tariff, and SLA duration is mathematically derived by deterministic engines before being supplied to the AI context.</font>", body_style),
+        Paragraph("<b>1. Absolute Numerical Grounding</b><br/><font color='#475569'>Every volume, flow rate, financial tariff, and SLA duration is mathematically derived by deterministic engines before being supplied to the AI context.</font>", body_style),
         Spacer(1, 4),
-        Paragraph("<b>2. Multimodal Sensor Fusion</b><br/><font color='#8B96A5'>Combines occupancy infrared optics, acoustic hydrophone frequencies (2,420 Hz cavitation screech), and passenger QR feedback.</font>", body_style),
+        Paragraph("<b>2. Multimodal Sensor Fusion</b><br/><font color='#475569'>Combines occupancy infrared optics, acoustic hydrophone frequencies (2,420 Hz cavitation screech), and passenger QR feedback.</font>", body_style),
     ]
     col2 = [
-        Paragraph("<b>3. Closed-Loop Verification</b><br/><font color='#8B96A5'>Post-repair telemetry is monitored in real-time to mathematically verify flow reduction back to zero-leak baseline before incident closure.</font>", body_style),
+        Paragraph("<b>3. Closed-Loop Verification</b><br/><font color='#475569'>Post-repair telemetry is monitored in real-time to mathematically verify flow reduction back to zero-leak baseline before incident closure.</font>", body_style),
         Spacer(1, 4),
-        Paragraph("<b>4. Enterprise System Interop</b><br/><font color='#8B96A5'>Direct integration with MQTT telemetry streams, IBM Maximo / SAP PM work orders, and CEA-compliant GHG carbon accounting.</font>", body_style),
+        Paragraph("<b>4. Enterprise System Interop</b><br/><font color='#475569'>Direct integration with MQTT telemetry streams, IBM Maximo / SAP PM work orders, and CEA-compliant GHG carbon accounting.</font>", body_style),
     ]
     summary_table = Table([[col1, col2]], colWidths=[3.4 * inch, 3.4 * inch])
     summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), PANEL_BG),
+        ('BACKGROUND', (0, 0), (-1, -1), CARD_BG),
         ('BOX', (0, 0), (-1, -1), 1, BORDER_COLOR),
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
@@ -357,12 +357,12 @@ You operate under the following seven inviolable operational constraints:
         ["get_model_evaluation_metrics", "()", "ROC AUC, Precision, Recall, F1 score, confusion matrix"],
     ]
     tool_table = Table([[Paragraph(f"<b>{c}</b>", body_style) for c in tool_data[0]]] +
-                       [[Paragraph(f"<font color='#00A3E0'>{r[0]}</font>", body_style),
+                       [[Paragraph(f"<font color='#0077B6'>{r[0]}</font>", body_style),
                          Paragraph(f"<code>{r[1]}</code>", body_style),
                          Paragraph(r[2], body_style)] for r in tool_data[1:]],
                        colWidths=[1.8 * inch, 1.4 * inch, 3.8 * inch])
     tool_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), PANEL_BG),
+        ('BACKGROUND', (0, 0), (-1, 0), CARD_BG),
         ('BOX', (0, 0), (-1, -1), 1, BORDER_COLOR),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('LEFTPADDING', (0, 0), (-1, -1), 6),
@@ -455,7 +455,7 @@ You operate under the following seven inviolable operational constraints:
     ]
 
     for title, desc in scenarios:
-        story.append(make_card(title, [Paragraph(desc, body_style)], badge="ACTIVE RULESET", badge_color=KOHLER_CYAN))
+        story.append(make_card(title, [Paragraph(desc, body_style)], badge="ACTIVE RULESET", badge_color=KOHLER_BLUE))
         story.append(Spacer(1, 6))
 
     story.append(PageBreak())
@@ -497,17 +497,17 @@ You operate under the following seven inviolable operational constraints:
         ["FA-301", "Arrivals · RR 01", "124,000 / 350k", "35.4%", "18 / 100", "4.1%", "OPTIMAL"],
     ]
     fleet_table = Table([[Paragraph(f"<b>{h}</b>", body_style) for h in fleet_headers]] +
-                        [[Paragraph(f"<font color='#00A3E0'>{r[0]}</font>", body_style),
+                        [[Paragraph(f"<font color='#0077B6'><b>{r[0]}</b></font>", body_style),
                           Paragraph(r[1], body_style),
                           Paragraph(r[2], body_style),
-                          Paragraph(f"<font color='{'#FF4D5A' if '92' in r[3] else '#F4F7FA'}'>{r[3]}</font>", body_style),
+                          Paragraph(f"<font color='{'#DC2626' if '92' in r[3] else '#0F172A'}'>{r[3]}</font>", body_style),
                           Paragraph(r[4], body_style),
-                          Paragraph(f"<b><font color='{'#FF4D5A' if '84' in r[5] else '#35D07F'}'>{r[5]}</font></b>", body_style),
-                          Paragraph(f"<font color='{'#FF4D5A' if 'CRIT' in r[6] else '#35D07F'}'>{r[6]}</font>", body_style)]
+                          Paragraph(f"<b><font color='{'#DC2626' if '84' in r[5] else '#059669'}'>{r[5]}</font></b>", body_style),
+                          Paragraph(f"<b><font color='{'#DC2626' if 'CRIT' in r[6] else '#059669'}'>{r[6]}</font></b>", body_style)]
                          for r in fleet_rows],
                         colWidths=[1.0 * inch, 1.4 * inch, 1.2 * inch, 0.8 * inch, 0.8 * inch, 0.9 * inch, 0.9 * inch])
     fleet_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), PANEL_BG),
+        ('BACKGROUND', (0, 0), (-1, 0), CARD_BG),
         ('BOX', (0, 0), (-1, -1), 1, BORDER_COLOR),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('LEFTPADDING', (0, 0), (-1, -1), 5),
@@ -570,12 +570,12 @@ You operate under the following seven inviolable operational constraints:
     ]
     comp_table = Table([[Paragraph(f"<b>{c}</b>", body_style) for c in state_comp[0]]] +
                        [[Paragraph(r[0], body_style),
-                         Paragraph(f"<font color='#FF4D5A'>{r[1]}</font>", body_style),
-                         Paragraph(f"<font color='#35D07F'><b>{r[2]}</b></font>", body_style)]
+                         Paragraph(f"<font color='#DC2626'>{r[1]}</font>", body_style),
+                         Paragraph(f"<font color='#059669'><b>{r[2]}</b></font>", body_style)]
                         for r in state_comp[1:]],
                        colWidths=[2.2 * inch, 2.4 * inch, 2.4 * inch])
     comp_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), PANEL_BG),
+        ('BACKGROUND', (0, 0), (-1, 0), CARD_BG),
         ('BOX', (0, 0), (-1, -1), 1, BORDER_COLOR),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('LEFTPADDING', (0, 0), (-1, -1), 6),
