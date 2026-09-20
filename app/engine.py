@@ -18,9 +18,10 @@ External streams that stop are re-owned by the simulator automatically.
 from __future__ import annotations
 
 import statistics
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from . import ai
+from .ml import compute_anomaly_score, FAILURE_MODEL
 from .state import (
     Alert,
     LITERS_PER_FLUSH,
@@ -41,6 +42,39 @@ IDLE_FLOW_ALERTABLE = 0.15   # idle flow (occupancy 0, no flush) that counts
 
 SEVERITY_BY_DAILY_LOSS = [(2500, "CRITICAL"), (1000, "HIGH"), (250, "MEDIUM")]
 PRIORITY_BY_SEVERITY = {"CRITICAL": "P1", "HIGH": "P2", "MEDIUM": "P3", "LOW": "P4"}
+
+TECHNICIAN_ROSTER = [
+    {"name": "Arjun Sharma", "cert": "Plumbing", "zone": "Terminal 2", "active_tickets": 1},
+    {"name": "Priya Nair", "cert": "Electrical/IoT", "zone": "Terminal 1", "active_tickets": 0},
+    {"name": "Ramesh Patil", "cert": "General Facility", "zone": "Terminal 3", "active_tickets": 0},
+    {"name": "Sunita Rao", "cert": "Housekeeping", "zone": "Terminal 2", "active_tickets": 0},
+]
+
+
+def optimize_dispatch(alert: Alert) -> dict:
+    """SLA-aware technician assignment matching certification, proximity, and queue load."""
+    sla_min = 15 if alert.priority == "P1" else (45 if alert.priority == "P2" else (90 if alert.priority == "P3" else 180))
+    if alert.kind in ("continuous_leak", "phantom_flush", "pressure_anomaly"):
+        needed = "Plumbing"
+    elif alert.kind in ("sensor_fault", "predictive"):
+        needed = "Electrical/IoT"
+    elif alert.kind == "hygiene":
+        needed = "Housekeeping"
+    else:
+        needed = "General Facility"
+
+    candidates = [t for t in TECHNICIAN_ROSTER if t["cert"] == needed or t["cert"] == "General Facility"]
+    candidates.sort(key=lambda t: (t["zone"] not in alert.zone, t["active_tickets"]))
+    tech = candidates[0] if candidates else TECHNICIAN_ROSTER[0]
+    eta = 8 if tech["zone"] in alert.zone else 16
+
+    return {
+        "technician": tech["name"],
+        "team": tech["cert"],
+        "sla_deadline_minutes": sla_min,
+        "eta_minutes": eta,
+        "rationale": f"✓ {tech['cert']} Certified · ✓ Based in {tech['zone']} · ✓ Active queue: {tech['active_tickets']} · ✓ {sla_min}m SLA",
+    }
 
 # External /telemetry writes take over a device's writer slot while they
 # keep arriving; the simulator pauses that device and resumes it after
@@ -112,6 +146,7 @@ def _record(store: Store, dev, ev: TelemetryEvent) -> None:
     dev.duration_min = ev.duration_min
     dev.sensor_errors = max(dev.sensor_errors, ev.sensor_errors)
     dev.battery_pct = ev.battery_pct
+    dev.pressure_bar = getattr(ev, "pressure_bar", 3.0)
     dev.history.append({
         "t": ev.timestamp.isoformat(),
         "flow": ev.flow_lpm,
@@ -119,6 +154,19 @@ def _record(store: Store, dev, ev: TelemetryEvent) -> None:
         "flush": ev.flush_count,
         "err": ev.sensor_errors,
     })
+    anom = compute_anomaly_score(
+        flow_lpm=dev.flow_lpm,
+        expected_flow_lpm=dev.expected_flow_lpm,
+        occupancy=dev.occupancy,
+        flush_count=dev.flush_count,
+        duration_min=dev.duration_min,
+        sensor_errors=dev.sensor_errors,
+        flow_variance_pct=dev.flow_variance_pct,
+        pressure_bar=dev.pressure_bar,
+    )
+    dev.anomaly_score = anom["score"]
+    dev.anomaly_band = anom["band"]
+    dev.contributing_factors = anom["factors"]
     store.telemetry.append(ev.model_dump(mode="json"))
 
 
@@ -356,6 +404,8 @@ def _upsert_alert(store: Store, dev, kind: str, issue: str, loss_so_far: float,
 
     facts = _facts(store, dev, None, telemetry_snapshot)
     composed = ai.compose_diagnosis(kind, facts)
+    anom_score = getattr(dev, "anomaly_score", 80)
+    anom_band = getattr(dev, "anomaly_band", "CRITICAL")
     alert = Alert(
         id=_next_alert_id(store),
         device_id=dev.device_id, device_type=dev.type, zone=dev.zone,
@@ -367,6 +417,11 @@ def _upsert_alert(store: Store, dev, kind: str, issue: str, loss_so_far: float,
         diagnosis=composed["diagnosis"],
         recommended_action=composed["recommended_action"],
         telemetry=telemetry_snapshot,
+        anomaly_score=anom_score,
+        anomaly_band=anom_band,
+        timeline=[
+            {"time": utcnow().strftime("%H:%M UTC"), "event": "ANOMALY_CONFIRMED", "note": f"Triggered {kind} ({issue})"}
+        ],
     )
     store.alerts.append(alert)
     ticket = _dispatch_ticket(store, alert)
@@ -420,10 +475,22 @@ def _dispatch_ticket(store: Store, alert: Alert) -> Optional[MaintenanceTicket]:
                     "Deploy cleaning crew; deep-clean fixtures and restock consumables."),
         "predictive": ("Predictive Maintenance",
                        "Schedule preventive inspection within 72 hours; check seals and actuator wear."),
+        "pressure_anomaly": ("Mechanical & Supply",
+                             "Inspect main line isolation valve and check booster pump regulator."),
     }
     if alert.kind not in rules:
         return None
     category, action = rules[alert.kind]
+    opt = optimize_dispatch(alert)
+
+    alert.assigned_technician = opt["technician"]
+    alert.sla_minutes = opt["sla_deadline_minutes"]
+    alert.timeline.append({
+        "time": utcnow().strftime("%H:%M UTC"),
+        "event": "DISPATCH_OPTIMIZED",
+        "note": f"Auto-assigned {opt['technician']} ({opt['team']}) — {opt['sla_deadline_minutes']}m SLA",
+    })
+
     ticket = MaintenanceTicket(
         ticket_id=f"KHL-{store.ticket_seq}",
         category=category,
@@ -436,6 +503,14 @@ def _dispatch_ticket(store: Store, alert: Alert) -> Optional[MaintenanceTicket]:
         action=action,
         ai_summary=ai.compose_ticket_summary(alert),
         alert_id=alert.id,
+        assigned_technician=opt["technician"],
+        technician_team=opt["team"],
+        sla_deadline_minutes=opt["sla_deadline_minutes"],
+        eta_minutes=opt["eta_minutes"],
+        dispatch_rationale=opt["rationale"],
+        timeline=[
+            {"time": utcnow().strftime("%H:%M UTC"), "event": "DISPATCH_OPTIMIZED", "note": opt["rationale"]}
+        ],
     )
     store.ticket_seq += 1
     store.tickets.append(ticket)
@@ -445,7 +520,7 @@ def _dispatch_ticket(store: Store, alert: Alert) -> Optional[MaintenanceTicket]:
 # ------------------------------------------------------------ health model
 
 def _decay_health(store: Store) -> None:
-    """Recompute device health scores from the rolling telemetry window."""
+    """Recompute device health scores and evaluate ML failure-risk model."""
     for dev in store.devices.values():
         if len(dev.history) < 8:
             continue
@@ -470,11 +545,14 @@ def _decay_health(store: Store) -> None:
         penalty += min(20, dev.sensor_errors * 1.6)
         dev.health_score = int(max(0, min(100, round(100 - penalty))))
 
-        dev.failure_probability = round(min(0.95, (100 - dev.health_score) / 100 * 0.9
-                                            + min(0.05, dev.sensor_errors * 0.002)), 2)
+        # Evaluate ML predictive failure risk
+        pred = FAILURE_MODEL.predict(dev)
+        dev.failure_probability = pred["failure_probability_7d"]
+        dev.risk = pred["risk"]
+        dev.contributing_factors = pred["contributing_factors"]
+
         if dev.health_score < 75:
             dev.health_degraded_once = True
-        if dev.health_score >= 75:
             dev.risk = "LOW"
         elif dev.health_score >= 45:
             dev.risk = "MEDIUM"
@@ -492,6 +570,11 @@ def resolve_alert(store: Store, alert_id: str) -> Optional[Alert]:
     alert.resolved_at = utcnow()
     duration_min = (alert.resolved_at - alert.created_at).total_seconds() / 60.0
     alert.resolution_note = ai.compose_resolution_note(alert, store)
+    alert.timeline.append({
+        "time": alert.resolved_at.strftime("%H:%M UTC"),
+        "event": "VERIFIED_RESOLUTION",
+        "note": f"Repair verified. Conserved {alert.estimated_monthly_loss_liters:,.0f} L/month.",
+    })
     if alert.kind in ("continuous_leak", "phantom_flush"):
         store.saved_month_liters += alert.estimated_monthly_loss_liters
     store.resolved_count += 1
@@ -500,6 +583,12 @@ def resolve_alert(store: Store, alert_id: str) -> Optional[Alert]:
     for t in store.tickets:
         if t.alert_id == alert.id and t.status == "OPEN":
             t.status = "RESOLVED"
+            t.resolved_at = alert.resolved_at
+            t.timeline.append({
+                "time": alert.resolved_at.strftime("%H:%M UTC"),
+                "event": "TICKET_VERIFIED_CLOSED",
+                "note": alert.resolution_note,
+            })
             t.resolved_at = alert.resolved_at
 
     dev = store.devices.get(alert.device_id)

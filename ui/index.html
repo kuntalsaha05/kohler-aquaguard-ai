@@ -30,11 +30,14 @@
     <span class="toolbar-label">Scenario injection</span>
     <button class="btn btn-danger" data-scenario="continuous-leak">💧 Continuous leak</button>
     <button class="btn" data-scenario="phantom-flushes">🚽 Phantom flushes</button>
-    <button class="btn" data-scenario="device-degradation">📉 Device degradation</button>
-    <button class="btn" data-scenario="sensor-failure">🔌 Sensor failure</button>
-    <button class="btn" data-scenario="occupancy-spike">👥 Occupancy spike</button>
-    <button class="btn btn-ghost" id="btn-stop">■ Stop scenarios</button>
+    <button class="btn" data-scenario="device-degradation">📉 Device wear</button>
+    <button class="btn" data-scenario="pressure-anomaly">⚠️ Pressure drop</button>
+    <button class="btn" data-scenario="multiple-leaks">⚡ Multi-leak storm</button>
+    <button class="btn" data-scenario="sensor-failure">🔌 Sensor fault</button>
+    <button class="btn" data-scenario="occupancy-spike">👥 Occupancy surge</button>
+    <button class="btn btn-ghost" id="btn-stop">■ Stop</button>
     <span class="spacer"></span>
+    <button class="btn btn-ghost" id="btn-report">📄 Daily Report</button>
     <button class="btn btn-primary" id="btn-demo">▶ Run guided demo</button>
   </nav>
 
@@ -43,11 +46,13 @@
   <main class="grid">
     <section class="panel zones-panel">
       <div class="panel-head">
-        <h2>Facility Map</h2>
-        <div class="legend">
-          <span><i class="dot dot-green"></i>Normal</span>
-          <span><i class="dot dot-amber"></i>Warning</span>
-          <span><i class="dot dot-red"></i>Critical</span>
+        <h2>Airport Digital Twin</h2>
+        <div class="twin-tabs" id="terminal-tabs">
+          <button class="tab-btn active" data-term="all">All</button>
+          <button class="tab-btn" data-term="Terminal 1">T1</button>
+          <button class="tab-btn" data-term="Terminal 2">T2</button>
+          <button class="tab-btn" data-term="Terminal 3">T3</button>
+          <button class="tab-btn" data-term="Arrivals">Arrivals</button>
         </div>
       </div>
       <div class="zones" id="zones"></div>
@@ -60,7 +65,7 @@
       </div>
       <canvas id="flow-chart" height="150"></canvas>
       <div class="panel-head sub">
-        <h2>Incident Feed</h2>
+        <h2>Incident Feed &amp; Lifecycle</h2>
         <span class="muted" id="alert-count"></span>
       </div>
       <div class="alerts" id="alerts-list"></div>
@@ -69,14 +74,15 @@
     <section class="panel chat-panel">
       <div class="panel-head">
         <h2>AI Command Center</h2>
-        <span class="muted">grounded on live telemetry</span>
+        <span class="muted">Grounded ReAct Agent</span>
       </div>
+      <div class="tool-trail" id="tool-trail" style="display:none;"></div>
       <div class="chat-log" id="chat-log"></div>
       <div class="chips">
         <button class="chip" data-q="Where are we wasting the most water today?">Most water wasted?</button>
         <button class="chip" data-q="What should I fix first?">Fix first?</button>
-        <button class="chip" data-q="How is hygiene compliance?">Hygiene?</button>
-        <button class="chip" data-q="Which devices are at risk of failure?">Devices at risk?</button>
+        <button class="chip" data-q="Why is FV-182 critical?">Why FV-182?</button>
+        <button class="chip" data-q="Generate daily facility report">Daily Report</button>
         <button class="chip" data-q="What is our sustainability impact?">Savings?</button>
       </div>
       <form class="chat-input" id="chat-form">

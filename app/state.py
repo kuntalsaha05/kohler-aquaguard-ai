@@ -63,6 +63,11 @@ class Alert(BaseModel):
     recommended_action: str
     telemetry: Dict[str, Any] = {}
     status: Literal["OPEN", "RESOLVED"] = "OPEN"
+    anomaly_score: int = 0
+    anomaly_band: str = "NORMAL"
+    assigned_technician: Optional[str] = None
+    sla_minutes: int = 60
+    timeline: List[Dict[str, Any]] = []
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
     resolved_at: Optional[datetime] = None
@@ -81,6 +86,12 @@ class MaintenanceTicket(BaseModel):
     action: str
     ai_summary: str
     alert_id: Optional[str] = None
+    assigned_technician: Optional[str] = None
+    technician_team: Optional[str] = None
+    sla_deadline_minutes: int = 60
+    eta_minutes: int = 15
+    dispatch_rationale: Optional[str] = None
+    timeline: List[Dict[str, Any]] = []
     status: Literal["OPEN", "RESOLVED"] = "OPEN"
     created_at: datetime = Field(default_factory=utcnow)
     resolved_at: Optional[datetime] = None
@@ -118,6 +129,11 @@ class DeviceState:
         # predictive layer distinguish "wear preceded the failure" from "an
         # acute leak is dragging health down".
         self.health_degraded_once = False
+        self.anomaly_score = 0
+        self.anomaly_band = "NORMAL"
+        self.contributing_factors: List[str] = []
+        self.pressure_bar = 3.0
+        self.cumulative_cycles = 4500
 
     def to_dict(self) -> dict:
         return {
@@ -133,6 +149,11 @@ class DeviceState:
             "flush_irregularity": self.flush_irregularity,
             "failure_probability": self.failure_probability,
             "health_degraded_once": self.health_degraded_once,
+            "anomaly_score": self.anomaly_score,
+            "anomaly_band": self.anomaly_band,
+            "contributing_factors": self.contributing_factors,
+            "pressure_bar": self.pressure_bar,
+            "cumulative_cycles": self.cumulative_cycles,
         }
 
     @classmethod
@@ -142,10 +163,12 @@ class DeviceState:
         for k in ("flow_lpm", "occupancy", "flush_count", "duration_min",
                   "sensor_errors", "battery_pct", "episode_min", "health_score",
                   "flow_variance_pct", "anomaly_frequency", "flush_irregularity",
-                  "failure_probability"):
+                  "failure_probability", "anomaly_score", "pressure_bar", "cumulative_cycles"):
             setattr(dev, k, d.get(k, 0))
         dev.health_degraded_once = d.get("health_degraded_once", False)
         dev.risk = d.get("risk", "LOW")
+        dev.anomaly_band = d.get("anomaly_band", "NORMAL")
+        dev.contributing_factors = d.get("contributing_factors", [])
         dev.history = deque(d.get("history", []), maxlen=40)
         return dev
 

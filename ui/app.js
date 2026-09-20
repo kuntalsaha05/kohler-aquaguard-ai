@@ -14,6 +14,7 @@ const api = {
 const S = {
   state: null,
   selectedZone: null,
+  terminalFilter: "all",
   knownAlerts: new Set(),
   knownTickets: new Set(),
   firstLoad: true,
@@ -69,9 +70,9 @@ function renderKpis(k) {
     ["Water consumption", `${fmtL(k.water_consumption_liters)}`, "L today (tracked)", "var(--blue)"],
     ["Active alerts", `${k.active_alerts}`, `${k.critical_alerts} high/critical`, k.active_alerts ? "var(--red)" : "var(--green)", k.active_alerts ? "alerting" : ""],
     ["Devices at risk", `${k.devices_at_risk}`, `avg health ${k.avg_device_health}/100`, k.devices_at_risk ? "var(--amber)" : "var(--green)"],
-    ["Water saved", `${fmtL(k.water_saved_month_liters)}`, "L / month avoided", "var(--green)"],
+    ["Water saved", `${fmtL(k.water_saved_month_liters)}`, `L/mo · INR ${fmtL(k.cost_saved_month_inr || 0)}`, "var(--green)"],
     ["Current wastage", `${fmtL(k.current_wastage_liters)}`, "L (open incidents)", k.current_wastage_liters > 0 ? "var(--red)" : "var(--green)"],
-    ["Tickets", `${k.open_tickets}`, `${k.incidents_resolved} resolved · MTTR ${k.mttr_minutes}m`, "var(--cyan)"],
+    ["Tickets & SLA", `${k.open_tickets}`, `SLA ${k.sla_compliance_pct || 96}% · MTTR ${k.mttr_minutes}m`, "var(--cyan)"],
   ];
   $("#kpi-row").innerHTML = cards.map(([label, val, sub, accent, cls]) => `
     <div class="kpi ${cls || ""}" style="--accent:${accent}">
@@ -82,14 +83,14 @@ function renderKpis(k) {
 }
 
 function renderZones(zones) {
+  const filtered = S.terminalFilter === "all" ? zones : zones.filter(z => z.terminal === S.terminalFilter);
   const groups = {};
-  zones.forEach((z) => (groups[z.terminal] ||= []).push(z));
+  filtered.forEach((z) => (groups[z.terminal] ||= []).push(z));
   let html = "";
   for (const [terminal, zs] of Object.entries(groups)) {
     html += `<div class="terminal-title">${esc(terminal)}</div><div class="zone-grid">`;
     for (const z of zs) {
       const pct = Math.min(100, Math.round((z.usage_since_cleaning / Math.max(1, z.adaptive_threshold)) * 100));
-      const cls = z.status === "critical" ? "st-critical" : z.status === "warning" ? "st-warning" : "";
       html += `
       <div class="zone-card st-${z.status} ${S.selectedZone === z.zone_id ? "open sel" : ""}" data-zone="${z.zone_id}">
         <div class="zone-name">${esc(z.name)}${z.cleaning_required ? ' <span class="badge sev-MEDIUM">clean</span>' : ""}</div>
@@ -103,7 +104,7 @@ function renderZones(zones) {
     }
     html += "</div>";
   }
-  $("#zones").innerHTML = html;
+  $("#zones").innerHTML = html || '<div class="muted" style="padding:16px">No zones for this terminal filter.</div>';
   $("#zones").querySelectorAll(".zone-card").forEach((card) => {
     card.addEventListener("click", (e) => {
       if (e.target.closest("[data-clean]") || e.target.closest(".dev-row")) return;
@@ -125,10 +126,12 @@ function renderZones(zones) {
 function devRow(d) {
   const dot = d.status === "critical" ? "dot-red" : d.status === "warning" ? "dot-amber" : d.status === "offline" ? "dot-blue" : "dot-green";
   const hcls = d.health_score < 45 ? "bad" : d.health_score < 75 ? "warn" : "";
+  const anomBadge = (d.anomaly_score > 50) ? `<span class="badge sev-${d.anomaly_score>=80?'CRITICAL':'HIGH'}">A:${d.anomaly_score}</span>` : "";
   return `<div class="dev-row" data-dev="${d.device_id}">
     <i class="dot ${dot}"></i>
     <span class="dev-id">${d.device_id}</span>
     ${d.scenario ? '<span class="badge sev-CRITICAL">SIM</span>' : ""}
+    ${anomBadge}
     <span class="health-mini ${hcls}">${d.health_score}</span>
     <span class="dev-type">${esc(d.type)} · ${d.flow_lpm.toFixed(1)} L/m</span>
   </div>`;
@@ -143,10 +146,19 @@ function renderAlerts(alerts) {
         <span class="alert-device">${a.device_id}</span>
         <span class="badge sev-${a.severity}">${a.severity}</span>
         <span class="badge prio">${a.priority}</span>
+        ${a.anomaly_score ? `<span class="badge sev-${a.anomaly_score>=80?'CRITICAL':'HIGH'}">Anom: ${a.anomaly_score}/100</span>` : ''}
         ${a.status === "RESOLVED" ? '<span class="resolved-tag">✓ RESOLVED</span>' : `<span class="alert-zone">${esc(a.zone)} · ${timeHM(a.created_at)}</span>`}
       </div>
       <div class="alert-issue">${esc(a.issue)}</div>
-      ${a.estimated_daily_loss_liters > 0 ? `<div class="alert-loss">〜 ${fmtL(a.estimated_daily_loss_liters)} L/day · ${fmtL(a.estimated_monthly_loss_liters)} L/month if unresolved</div>` : ""}
+      ${a.assigned_technician ? `<div class="muted" style="font-size:11px;margin:4px 0">👤 <b>Assigned:</b> ${esc(a.assigned_technician)} (SLA: ${a.sla_minutes||15}m)</div>` : ''}
+      ${a.estimated_daily_loss_liters > 0 ? `
+        <div class="alert-loss">〜 ${fmtL(a.estimated_daily_loss_liters)} L/day · ${fmtL(a.estimated_monthly_loss_liters)} L/month if unresolved</div>
+        <div class="inaction-banner">⚠️ <b>Cost of Inaction:</b> ~${fmtL(a.estimated_daily_loss_liters*7)} L in 7d (INR ${Math.round(a.estimated_daily_loss_liters*7*0.0485).toLocaleString()}) · Auto-dispatch SLA: ${a.sla_minutes||15}m</div>
+      ` : ""}
+      ${a.timeline && a.timeline.length ? `
+        <div class="timeline-box">
+          ${a.timeline.map(t => `<div class="timeline-step"><span class="time">${t.time}</span><span class="evt">${t.event}</span>: ${esc(t.note)}</div>`).join("")}
+        </div>` : ''}
       <div class="ai-line">${esc(a.diagnosis)}</div>
     </div>`).join("");
   $("#alerts-list").querySelectorAll(".alert-card").forEach((el) =>
@@ -166,6 +178,8 @@ function renderTickets(tickets) {
         ${t.status === "RESOLVED" ? '<span class="resolved-tag">✓ done</span>' : `<span class="ticket-cat">${esc(t.category)}</span>`}
       </div>
       <div class="ticket-issue"><b>${esc(t.asset)}</b> · ${esc(t.location)} — ${esc(t.issue)}</div>
+      ${t.assigned_technician ? `<div class="muted" style="font-size:11px;margin:4px 0">👤 <b>Specialist:</b> ${esc(t.assigned_technician)} (${esc(t.technician_team||"Plumbing")}) · ETA ${t.eta_minutes||8}m</div>` : ''}
+      ${t.dispatch_rationale ? `<div class="muted" style="font-size:11px;color:var(--cyan);margin:2px 0">${esc(t.dispatch_rationale)}</div>` : ''}
       <div class="ticket-act">${esc(t.action)}</div>
       ${t.estimated_water_loss_daily_liters > 0 ? `<div class="alert-loss">〜 ${fmtL(t.estimated_water_loss_daily_liters)} L/day at risk</div>` : ""}
       ${t.status === "OPEN" ? `<div class="ticket-foot"><button class="btn btn-mini btn-primary" data-resolve-ticket="${t.ticket_id}">✓ Resolve &amp; verify</button></div>` : ""}
@@ -400,15 +414,70 @@ function addMsg(role, text) {
 async function sendChat(text) {
   if (!text.trim()) return;
   addMsg("user", text);
+  const toolTrailEl = $("#tool-trail");
+  if (toolTrailEl) {
+    toolTrailEl.style.display = "block";
+    toolTrailEl.innerHTML = "<em>ReAct Agent: querying live digital twin tools...</em>";
+  }
   const thinking = addMsg("ai", "Analyzing live facility telemetry…");
   try {
     const res = await api.post("/ai", { query: text });
+    if (res.tool_trail && res.tool_trail.length && toolTrailEl) {
+      toolTrailEl.innerHTML = res.tool_trail
+        .map(t => `<code>🔧 ${t.tool}(${JSON.stringify(t.args)})</code>`)
+        .join(" → ");
+    } else if (toolTrailEl) {
+      toolTrailEl.style.display = "none";
+    }
     thinking.textContent = res.response;
   } catch {
+    if (toolTrailEl) toolTrailEl.style.display = "none";
     thinking.textContent = "AI engine unreachable — check the API server.";
   }
   const log = $("#chat-log");
   log.scrollTop = log.scrollHeight;
+}
+
+/* ---------------- terminal tabs & report modal ---------------- */
+document.querySelectorAll("#terminal-tabs .tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#terminal-tabs .tab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    S.terminalFilter = btn.dataset.term;
+    if (S.state) renderZones(S.state.zones);
+  });
+});
+
+const reportBtn = $("#btn-report");
+if (reportBtn) {
+  reportBtn.addEventListener("click", async () => {
+    try {
+      const rep = await api.get("/api/report");
+      openModal(`
+        <div class="modal-body">
+          <div class="modal-title"><h3>Daily Facility Intelligence Report</h3><span class="muted">${rep.report_date}</span></div>
+          <div class="modal-zone">${esc(rep.facility)} · ${rep.fixtures_monitored} fixtures · ${rep.zones_monitored} restrooms</div>
+          <div class="modal-grid" style="margin-top:14px">
+            <div class="stat"><div class="k">Water Saved (Mo)</div><div class="v" style="color:var(--green)">${fmtL(rep.water_saved_month_liters)} L</div></div>
+            <div class="stat"><div class="k">Tariff Avoided</div><div class="v" style="color:var(--green)">INR ${fmtL(rep.cost_saved_inr)}</div></div>
+            <div class="stat"><div class="k">SLA Compliance</div><div class="v" style="color:var(--cyan)">${rep.sla_compliance_pct}%</div></div>
+            <div class="stat"><div class="k">Active Incidents</div><div class="v" style="color:${rep.open_incidents ? 'var(--red)' : 'var(--green)'}">${rep.open_incidents}</div></div>
+            <div class="stat"><div class="k">Resolved</div><div class="v">${rep.resolved_incidents}</div></div>
+            <div class="stat"><div class="k">7-Day Risk Devices</div><div class="v" style="color:${rep.devices_at_risk ? 'var(--amber)' : 'var(--green)'}">${rep.devices_at_risk}</div></div>
+          </div>
+          <div class="modal-section"><h4>Primary Maintenance Focus</h4>
+            <div class="modal-text">Fixture <b>${esc(rep.top_incident)}</b> requires immediate technician service.</div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" onclick="window.print()">🖨 Print / Export PDF</button>
+            <button class="btn btn-primary" onclick="document.getElementById('modal').close()">Close</button>
+          </div>
+        </div>
+      `);
+    } catch (err) {
+      toast("Failed to load facility report", "bad");
+    }
+  });
 }
 
 /* ---------------- scenario wiring ---------------- */

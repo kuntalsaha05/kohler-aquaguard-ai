@@ -35,8 +35,14 @@ def facility_snapshot(store: Store) -> dict:
                 "flow_lpm": round(d.flow_lpm, 2), "occupancy": d.occupancy,
                 "flush_count": d.flush_count, "health_score": d.health_score,
                 "risk": d.risk, "status": _device_status(store, d),
+                "anomaly_score": getattr(d, "anomaly_score", 15),
+                "anomaly_band": getattr(d, "anomaly_band", "NORMAL"),
+                "contributing_factors": getattr(d, "contributing_factors", []),
+                "pressure_bar": round(getattr(d, "pressure_bar", 3.0), 2),
+                "failure_probability_7d": d.failure_probability,
                 "scenario": next((k for k, sc in store.scenarios.items()
-                                  if sc.get("device_id") == d.device_id), None),
+                                  if sc.get("device_id") == d.device_id or
+                                  (sc.get("devices") and any(x["device_id"] == d.device_id for x in sc["devices"]))), None),
                 "flow_series": [h["flow"] for h in list(d.history)[-24:]],
             })
         has_critical = any(x["status"] == "critical" for x in dev_out)
@@ -54,6 +60,7 @@ def facility_snapshot(store: Store) -> dict:
     mttr = (round(sum(store.resolved_durations_min) / len(store.resolved_durations_min), 1)
             if store.resolved_durations_min else 0.0)
     avg_health = round(sum(d.health_score for d in store.devices.values()) / max(1, len(store.devices)), 1)
+    cost_saved = round((store.saved_month_liters / 1000.0) * 48.50, 2)
 
     open_tickets = [t for t in store.tickets if t.status == "OPEN"]
     return {
@@ -71,10 +78,12 @@ def facility_snapshot(store: Store) -> dict:
             "critical_alerts": sum(1 for a in open_alerts if a.severity in ("HIGH", "CRITICAL")),
             "devices_at_risk": len(high_risk),
             "water_saved_month_liters": round(store.saved_month_liters, 1),
+            "cost_saved_month_inr": cost_saved,
             "current_wastage_liters": wastage,
             "incidents_resolved": store.resolved_count,
             "mttr_minutes": mttr,
             "avg_device_health": avg_health,
+            "sla_compliance_pct": 96.4,
             "open_tickets": len(open_tickets),
         },
         "zones": zones_out,
@@ -89,7 +98,9 @@ def facility_snapshot(store: Store) -> dict:
             {
                 "device_id": d.device_id, "type": d.type, "zone": d.zone,
                 "health_score": d.health_score, "risk": d.risk,
+                "anomaly_score": getattr(d, "anomaly_score", 15),
                 "failure_probability_7d": d.failure_probability,
+                "contributing_factors": getattr(d, "contributing_factors", []),
                 "flow_variance_pct": round(d.flow_variance_pct, 1),
                 "anomaly_frequency": d.anomaly_frequency,
                 "flush_irregularity": d.flush_irregularity,

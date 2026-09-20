@@ -214,9 +214,20 @@ def get_analytics() -> dict:
 
 @app.post("/ai")
 def ai_command_center(body: AIQuery) -> dict:
-    answer = ai.command_center_answer(STORE, body.query)
-    return {"response": answer, "engine": "deterministic reasoning over live telemetry",
-            "ts": utcnow().isoformat()}
+    result = ai.command_center_answer(STORE, body.query)
+    return {
+        "response": result["response"],
+        "tool_trail": result.get("tool_trail", []),
+        "report_data": result.get("report_data"),
+        "engine": "Grounded AI Facility Agent (Deterministic ReAct Loop)",
+        "ts": utcnow().isoformat(),
+    }
+
+
+@app.get("/api/report")
+def get_facility_report() -> dict:
+    return ai._tool_generate_facility_report(STORE)
+
 
 
 # ------------------------------------------------------------- simulation

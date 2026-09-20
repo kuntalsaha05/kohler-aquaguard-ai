@@ -68,70 +68,65 @@ external stream goes quiet — one writer per device, never interleaved.
 ## Architecture
 
 ```
-ui/            Ops-center dashboard (vanilla JS + canvas, zero build)
+ui/            Ops-center dashboard (Terminal Twin + Incident Timeline + Report Generator)
 app/
   main.py      FastAPI: API + static UI + simulation loop (1 tick ≈ 1 sim minute / 2 s)
-  sim.py       Digital twin: fleet generator, airport traffic curve, 5 scenario injectors
-  engine.py    Deterministic core: detectors, loss math, health model, priority, dispatch
-  views.py     Read-only projections: dashboard snapshot, KPI rollup, device status
-  ai.py        Explanation layer: diagnosis composer + grounded command-center Q&A
-  state.py     Models + JSON-persisted store (data/state.json survives restarts)
+  ml.py        ML engine: 0-100 Anomaly scoring + trained 7-day failure risk model (RandomForest)
+  sim.py       Digital twin: 97 fixtures across 4 terminals + 7 scenario injectors
+  engine.py    Core: detection, loss math, SLA dispatch optimization, timeline tracking
+  views.py     Read-only projections: digital twin status, KPI rollups, device status
+  ai.py        Grounded AI Agent: ReAct tool-calling loop, cost-of-inaction simulations, reports
+  state.py     Data models + persisted store with SLA and lifecycle milestones
 ```
 
-Detection pipeline per tick:
+Detection & Operations pipeline per tick:
 
 ```
-telemetry → detectors → loss estimation → severity → priority (P1–P4)
-          → alert upsert/escalation → auto-dispatch ticket → health model
-          → resolution verification → sustainability ledger
+telemetry → composite anomaly scoring (0-100) → detectors → loss estimation
+          → ML failure risk model → severity → priority (P1–P4)
+          → alert & chronological timeline upsert → SLA dispatch optimizer (technician routing)
+          → resolution verification → sustainability & cost ledger
 ```
 
-### The four AI layers
+### The AI & ML Architecture
 
 | Layer | Implementation | Purpose |
 |---|---|---|
 | Rule-based detection | `engine.py` (`flow > 0` ∧ `occupancy == 0` ∧ `flushes == 0` for 5+ min) | Obvious faults, zero false positives |
-| Anomaly detection | rolling-window statistics: idle-flow mean, flow variance, flush irregularity | Unusual telemetry patterns |
-| Predictive maintenance | health scoring model → 7-day failure probability → predictive alerts | Fix devices before they fail |
-| Reasoning/explanation | `ai.py` composer (deterministic; swappable for an LLM call with the same structured facts) | Incident diagnosis, ticket text, NL Q&A |
+| Composite Anomaly Score | `ml.py` (0–100 scale: NORMAL, WATCH, ANOMALOUS, CRITICAL) | Multi-factor telemetry variance & mismatch quantification |
+| ML Predictive Maintenance | `ml.py` (`RandomForestClassifier` trained on facility history) | 7-day failure probability + feature importance breakdown |
+| Grounded ReAct Agent | `ai.py` (Deterministic tool-calling loop over live twin) | Q&A, inaction cost simulations, daily intelligence reports |
+| SLA Dispatch Optimizer | `engine.py` (Technician routing based on skill, proximity, load) | Automated assignment with 15m/45m/90m SLA deadlines |
 
-**Design rule:** every number is computed deterministically — the reasoning
-layer explains telemetry, it never invents data.
+**Design rule:** every number is computed deterministically or by trained statistical models — the reasoning layer explains telemetry and acts on live tools, it never invents data.
 
-## Detection capabilities
+## Detection & Operational Capabilities
 
-- **Continuous leak intelligence** — idle flow with zero occupancy/flushes;
-  quantified so-far / daily / monthly loss; escalates with duration
-- **Phantom flushes** — flush events with zero occupancy (solenoid fault);
-  loss = rate × 6 L/flush
-- **Sensor failure** — flatlined telemetry, frozen occupancy, climbing errors
-- **Device degradation** — health score from anomaly frequency, idle flow,
-  variance, irregular flushes, sensor errors → LOW/MEDIUM/HIGH 7-day risk
-- **Adaptive hygiene engine** — per-zone usage threshold that flexes with
-  occupancy pressure and time-since-cleaning; auto housekeeping tickets;
-  cleaning events reset the counter
-- **Priority engine** — P1–P4 from severity + loss rate; CRITICAL leak → P1
-  immediate dispatch; tickets stay synced when incidents escalate
-- **Authoritative resolution** — resolving an alert/ticket ends that device's
-  fault scenario (no re-fire), service-resets the health model, and closes
-  sibling water-loss incidents on the same fixture (banking their savings)
-- **Predictive-before-failure** — devices whose health degrades on their own
-  (`health_degraded_once`) earn a predictive alert even after a leak develops
-  from the wear; acute leaks that drag health down do not double-alert
+- **Continuous leak intelligence** — idle flow with zero occupancy/flushes; quantified daily/monthly losses.
+- **Phantom flushes** — ghost activations with zero occupancy (solenoid seal failure).
+- **Sensor failure** — flatline telemetry, frozen occupancy, and climbing error rates.
+- **Device degradation & ML risk** — trained Random Forest predicts 7-day failure probability with attributed feature importance (idle flow frequency, flow variance, cycle fatigue).
+- **Pressure anomaly** — sudden line pressure drop below 1.5 bar accompanied by a surge in flow (supply riser breach).
+- **Multi-leak storm** — concurrent leaks across terminals testing automated P1/P2/P3 prioritization and technician dispatch.
+- **SLA-aware dispatch optimization** — auto-routes certified technicians (Plumbing, Electrical/IoT, Housekeeping) with proximity-based ETAs and SLA enforcement timers.
+- **Incident lifecycle timeline** — step-by-step chronological audit trail (`ANOMALY_CONFIRMED` → `DISPATCH_OPTIMIZED` → `VERIFIED_RESOLUTION`).
+- **Cost of Inaction simulation** — projects 7-day and 30-day water loss and tariff expense if left unfixed vs 15m AI automated response.
+- **Executive Daily Report** — one-click printable briefing with water saved, tariff costs avoided, and compliance metrics.
 
 ## API
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/api/state` | Full dashboard snapshot (KPIs, zones, alerts, tickets, risk, timeseries) |
+| GET | `/api/state` | Full dashboard snapshot (KPIs, terminal zones, alerts, tickets, risk, timeseries) |
+| GET | `/api/report` | Daily facility intelligence summary report |
 | POST | `/telemetry` | External telemetry ingestion (same pipeline) |
-| GET | `/alerts` · `/tickets` · `/devices` · `/predictions` | Incident/domain queries (`?status=OPEN`) |
-| POST | `/alerts/{id}/resolve` · `/tickets/{id}/resolve` | Resolve + verification + ledger |
-| POST | `/zones/{id}/cleaned` | Record cleaning |
-| POST | `/ai` | Command center (`{"query": "..."}`) |
-| POST | `/simulate/{scenario}` | Inject `continuous-leak` \| `phantom-flushes` \| `device-degradation` \| `sensor-failure` \| `occupancy-spike` |
+| GET | `/alerts` · `/tickets` · `/devices` · `/predictions` | Incident and device queries |
+| POST | `/alerts/{id}/resolve` · `/tickets/{id}/resolve` | Verified resolution & sustainability ledger updates |
+| POST | `/zones/{id}/cleaned` | Record zone cleaning |
+| POST | `/ai` | Grounded command center ReAct agent (`{"query": "..."}`) |
+| POST | `/simulate/{scenario}` | Inject `continuous-leak` \| `phantom-flushes` \| `device-degradation` \| `pressure-anomaly` \| `multiple-leaks` \| `sensor-failure` \| `occupancy-spike` |
 | POST | `/simulate/stop` · `/simulate/reset` | Scenario control |
-| GET | `/analytics` · `/healthz` | KPIs · liveness |
+| GET | `/healthz` | System health and simulation uptime |
 
 ## Notes
 

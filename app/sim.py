@@ -184,7 +184,12 @@ def _normal_device_event(store: Store, dev: DeviceState, now) -> TelemetryEvent:
 
 def _scenario_event(store: Store, dev: DeviceState, now, kind: str) -> Optional[TelemetryEvent]:
     sc = store.scenarios.get(kind)
-    if not sc or sc["device_id"] != dev.device_id:
+    if not sc:
+        return None
+    if "devices" in sc:
+        if not any(d["device_id"] == dev.device_id for d in sc["devices"]):
+            return None
+    elif sc.get("device_id") != dev.device_id:
         return None
     zone = store.zones[dev.zone_id]
 
@@ -237,6 +242,28 @@ def _scenario_event(store: Store, dev: DeviceState, now, kind: str) -> Optional[
             battery_pct=round(dev.battery_pct, 1),
         )
 
+    if kind == "pressure-anomaly":
+        age = store.tick_count - sc["started_tick"]
+        return TelemetryEvent(
+            device_id=dev.device_id, zone=dev.zone, timestamp=now,
+            flow_lpm=round(3.4 + rng.uniform(-0.1, 0.1), 2),
+            occupancy=0, flush_count=0, expected_flow_lpm=0.0,
+            duration_min=max(1, age),
+            temperature_c=26.0, sensor_errors=1, battery_pct=round(dev.battery_pct, 1),
+        )
+
+    if kind == "multiple-leaks":
+        devices_dict = {d["device_id"]: d["flow_lpm"] for d in sc.get("devices", [])}
+        flow = devices_dict.get(dev.device_id, 2.0)
+        age = store.tick_count - sc["started_tick"]
+        return TelemetryEvent(
+            device_id=dev.device_id, zone=dev.zone, timestamp=now,
+            flow_lpm=round(flow + rng.uniform(-0.05, 0.05), 2),
+            occupancy=0, flush_count=0, expected_flow_lpm=0.0,
+            duration_min=max(1, age),
+            temperature_c=26.5, sensor_errors=0, battery_pct=round(dev.battery_pct, 1),
+        )
+
     return None
 
 
@@ -251,8 +278,13 @@ def generate_tick(store: Store) -> List[TelemetryEvent]:
     _apply_scenarios(store, now)
 
     events: List[TelemetryEvent] = []
-    active_devices = {sc["device_id"] for sc in store.scenarios.values()
-                      if sc.get("device_id") and not sc.get("finished")}
+    active_devices = set()
+    for sc in store.scenarios.values():
+        if sc.get("device_id") and not sc.get("finished"):
+            active_devices.add(sc["device_id"])
+        if sc.get("devices"):
+            for d_item in sc["devices"]:
+                active_devices.add(d_item["device_id"])
 
     for dev in store.devices.values():
         if dev.device_id in store.hold_writers:
@@ -275,6 +307,8 @@ def generate_tick(store: Store) -> List[TelemetryEvent]:
 # ---------------- scenario control ----------------
 
 def _pick_device(store: Store, kinds: List[str], prefer: Optional[str] = None) -> DeviceState:
+    if not store.devices:
+        build_fleet(store)
     if prefer and prefer in store.devices:
         return store.devices[prefer]
     candidates = [d for d in store.devices.values() if d.type in kinds]
@@ -308,6 +342,17 @@ SCENARIO_META = {
         "device_types": ["Flush Valve"],
         "narrative": "Progressive wear — intermittent idle micro-flows and sensor noise",
     },
+    "pressure-anomaly": {
+        "label": "Pressure drop",
+        "device_types": ["Flush Valve"],
+        "prefer": "FV-105",
+        "narrative": "Supply line pressure drop from 3.2 bar to 1.2 bar with 3.4 L/min surge",
+    },
+    "multiple-leaks": {
+        "label": "Multi-leak storm",
+        "device_types": [],
+        "narrative": "Concurrent leaks across terminals to test automated P1/P2/P3 prioritization",
+    },
 }
 
 
@@ -325,6 +370,24 @@ def start_scenario(store: Store, kind: str, device_id: Optional[str] = None) -> 
         }
         return {"scenario": kind, "zone_id": zone_id,
                 "zone": store.zones[zone_id].name}
+
+    if kind == "multiple-leaks":
+        store.scenarios[kind] = {
+            "started_tick": store.tick_count,
+            "label": meta["label"],
+            "narrative": meta["narrative"],
+            "devices": [
+                {"device_id": "FV-182", "flow_lpm": 2.7},  # P1 Critical
+                {"device_id": "FV-105", "flow_lpm": 1.5},  # P2 High
+                {"device_id": "T-128",  "flow_lpm": 0.7},  # P3 Medium
+            ]
+        }
+        return {
+            "scenario": kind,
+            "devices_count": 3,
+            "targets": ["FV-182 (P1)", "FV-105 (P2)", "T-128 (P3)"],
+            "narrative": meta["narrative"],
+        }
 
     dev = _pick_device(store, meta["device_types"], device_id or meta.get("prefer"))
     if kind == "sensor-failure":

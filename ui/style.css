@@ -285,3 +285,29 @@ dialog::backdrop { background: rgba(2, 6, 14, 0.7); backdrop-filter: blur(3px); 
   .chat-panel { grid-column: span 2; }
   .lower-grid { grid-template-columns: 1fr; }
 }
+
+/* Digital twin tabs & tool trail */
+.twin-tabs { display: flex; gap: 4px; background: rgba(15,23,42,.6); padding: 3px; border-radius: 8px; }
+.tab-btn {
+  background: transparent; border: none; color: var(--muted); font-size: 11px;
+  font-weight: 600; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: all .15s;
+}
+.tab-btn.active, .tab-btn:hover { background: var(--panel-2); color: #fff; }
+
+.tool-trail {
+  font-family: var(--mono); font-size: 11px; background: rgba(14,165,233,.08);
+  border: 1px solid rgba(14,165,233,.25); border-radius: 8px; padding: 6px 10px;
+  margin-bottom: 8px; color: var(--cyan); line-height: 1.5;
+}
+.tool-trail code { background: rgba(14,165,233,.15); padding: 1px 4px; border-radius: 4px; }
+
+.timeline-box { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 11px; }
+.timeline-step { display: flex; gap: 6px; color: var(--muted); margin-bottom: 4px; }
+.timeline-step .time { font-family: var(--mono); color: var(--cyan); min-width: 55px; }
+.timeline-step .evt { color: #f1f5f9; font-weight: 600; }
+.inaction-banner {
+  margin-top: 8px; padding: 6px 10px; border-radius: 6px;
+  background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25);
+  font-size: 11px; color: #fde68a;
+}
+
