@@ -30,16 +30,18 @@
 
     <!-- Header Right Controls -->
     <div class="header-right">
-      <div class="live-indicator">
-        <span class="pulse-dot"></span>
-        <span class="live-text">LIVE</span>
+      <div class="live-indicator" id="ws-indicator">
+        <span class="pulse-dot" id="ws-dot"></span>
+        <span class="live-text" id="ws-text">LIVE WS</span>
         <span class="telemetry-tick" id="telemetry-tick">0.8s ago</span>
       </div>
       <div class="header-clock" id="live-clock">--:--:--</div>
+      <button class="btn btn-export-report" id="btn-export-report">📄 Export Report</button>
       <button class="btn btn-scenario" id="btn-open-sim">⚡ Scenarios</button>
-      <button class="btn btn-guided-demo" id="btn-guided-demo">▶ Guided Demo</button>
+      <button class="btn btn-guided-demo" id="btn-guided-demo">▶ Showcase Demo</button>
     </div>
   </header>
+
 
   <!-- View 1: Command Center (Default Main Dashboard) -->
   <main class="view-container active" id="view-command-center">
@@ -316,10 +318,14 @@
 
   <!-- View 4: Sustainability & Impact -->
   <main class="view-container" id="view-sustainability">
-    <div class="view-header">
-      <h2>SUSTAINABILITY &amp; ESG IMPACT</h2>
-      <span class="muted">Verified Resource Conservation &amp; Utility Ledger</span>
+    <div class="view-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2>SUSTAINABILITY &amp; ESG IMPACT</h2>
+        <span class="muted">Verified Resource Conservation &amp; Utility Ledger</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-sustain-export">📄 Export Official Audit Brief</button>
     </div>
+
 
     <section class="sustain-hero-card">
       <div class="sustain-hero-inner">
@@ -541,8 +547,52 @@
     </div>
   </dialog>
 
+  <!-- Interactive Demo Showcase Controller HUD -->
+  <aside class="showcase-hud hidden" id="showcase-hud">
+    <div class="showcase-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="showcase-pulse"></span>
+        <span class="showcase-badge">EXECUTIVE DEMO WALKTHROUGH</span>
+      </div>
+      <button class="showcase-close" id="btn-close-showcase">&times;</button>
+    </div>
+    <div class="showcase-progress">
+      <div class="showcase-step-pill active" id="pill-step-1">1. Baseline Peak</div>
+      <div class="showcase-step-pill" id="pill-step-2">2. Anomaly Injection</div>
+      <div class="showcase-step-pill" id="pill-step-3">3. AI Sensor Fusion</div>
+      <div class="showcase-step-pill" id="pill-step-4">4. Closed-Loop Verification</div>
+    </div>
+    <div class="showcase-body">
+      <h4 id="showcase-title">Stage 1: Pune Airport Morning Flight Peak</h4>
+      <p id="showcase-desc">Baseline flight departures (05:00–09:30) driving nominal passenger traffic. All 97 smart fixtures reporting healthy baseline flows.</p>
+    </div>
+    <div class="showcase-controls">
+      <button class="btn btn-ghost btn-sm" id="btn-showcase-prev" disabled>◀ Prev</button>
+      <button class="btn btn-primary btn-sm" id="btn-showcase-next">Next Step ▶</button>
+      <button class="btn btn-scenario btn-sm" id="btn-showcase-autoplay">⚡ Auto-Play (15s)</button>
+    </div>
+  </aside>
+
+  <!-- Executive Audit Report Modal -->
+  <dialog class="enterprise-dialog report-dialog" id="modal-executive-report">
+    <div class="dialog-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge-ai" style="background:#00A3E0;color:#fff;">OFFICIAL AUDIT</span>
+        <h3>KOHLER SMART FACILITY SUSTAINABILITY &amp; INCIDENT REPORT</h3>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn-primary btn-sm" id="btn-print-exec-report">🖨️ Print / Save PDF</button>
+        <button class="dialog-close" id="btn-close-exec-report">&times;</button>
+      </div>
+    </div>
+    <div class="dialog-body report-modal-body" id="exec-report-container" style="padding:0;overflow:hidden;">
+      <iframe id="exec-report-iframe" style="width:100%;height:75vh;border:none;background:#080B10;border-radius:0 0 8px 8px;"></iframe>
+    </div>
+  </dialog>
+
   <!-- Toast Stack -->
   <div class="toasts" id="toasts"></div>
+
 
   <!-- Standard Report Modal -->
   <dialog id="modal-report"><div id="modal-report-content"></div></dialog>

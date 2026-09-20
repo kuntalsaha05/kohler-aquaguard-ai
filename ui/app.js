@@ -69,17 +69,77 @@ $("#btn-back-to-facility")?.addEventListener("click", () => {
   switchView("command_center");
 });
 
-/* ---------------- Polling Loop ---------------- */
+/* ---------------- WebSocket & Polling Gateway ---------------- */
+let liveWs = null;
+let wsConnected = false;
+
+function initWebSocket() {
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${location.host}/ws/live`;
+
+  try {
+    liveWs = new WebSocket(wsUrl);
+
+    liveWs.onopen = () => {
+      wsConnected = true;
+      const wsText = $("#ws-text");
+      const wsDot = $("#ws-dot");
+      if (wsText) wsText.textContent = "LIVE WS";
+      if (wsDot) {
+        wsDot.style.background = "#35D07F";
+        wsDot.style.boxShadow = "0 0 10px #35D07F";
+      }
+    };
+
+    liveWs.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "init" || msg.type === "tick" || msg.type === "telemetry") {
+          S.state = msg.data;
+          S.lastTickTs = Date.now();
+          const tickEl = $("#telemetry-tick");
+          if (tickEl) tickEl.textContent = "0.1s ago";
+          render();
+        }
+      } catch (ex) {
+        console.error("WS message error", ex);
+      }
+    };
+
+    liveWs.onclose = () => {
+      wsConnected = false;
+      const wsText = $("#ws-text");
+      const wsDot = $("#ws-dot");
+      if (wsText) wsText.textContent = "POLL";
+      if (wsDot) {
+        wsDot.style.background = "#F5B942";
+        wsDot.style.boxShadow = "0 0 10px #F5B942";
+      }
+      setTimeout(initWebSocket, 3000);
+    };
+
+    liveWs.onerror = () => {
+      if (liveWs) liveWs.close();
+    };
+  } catch (err) {
+    console.warn("WebSocket initialization fallback", err);
+  }
+}
+
 async function poll() {
+  if (wsConnected) return; // WebSocket delivers sub-second push frames
   try {
     S.state = await api.get("/api/state");
     S.lastTickTs = Date.now();
-    $("#telemetry-tick").textContent = "0.2s ago";
+    const tickEl = $("#telemetry-tick");
+    if (tickEl) tickEl.textContent = "0.2s ago";
     render();
   } catch (err) {
-    $("#telemetry-tick").textContent = "connecting...";
+    const tickEl = $("#telemetry-tick");
+    if (tickEl) tickEl.textContent = "connecting...";
   }
 }
+
 
 // Live tick counter
 setInterval(() => {
@@ -851,41 +911,171 @@ $("#btn-sim-reset")?.addEventListener("click", async () => {
   poll();
 });
 
-/* ---------------- Guided Demo Walkthrough ---------------- */
-$("#btn-guided-demo")?.addEventListener("click", () => {
-  S.demoTimers.forEach(clearTimeout);
-  S.demoTimers = [];
-  const t = (ms, fn) => S.demoTimers.push(setTimeout(fn, ms));
+/* ---------------- Executive Report Export ---------------- */
+function openExecutiveReport() {
+  const modal = $("#modal-executive-report");
+  const iframe = $("#exec-report-iframe");
+  if (iframe) iframe.src = "/api/reports/executive/html";
+  if (modal) modal.showModal();
+}
 
-  toast("🎬 Guided demo started — switching to Command Center overview", "info");
-  switchView("command_center");
+$("#btn-export-report")?.addEventListener("click", openExecutiveReport);
+$("#btn-sustain-export")?.addEventListener("click", openExecutiveReport);
+$("#btn-close-exec-report")?.addEventListener("click", () => {
+  $("#modal-executive-report")?.close();
+});
+$("#btn-print-exec-report")?.addEventListener("click", () => {
+  const iframe = $("#exec-report-iframe");
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  }
+});
 
-  t(1200, async () => {
-    await api.post("/simulate/continuous-leak");
-    toast("⚡ <b>FV-182</b> in Terminal 2 / Restroom 14: Flush valve diaphragm tear injected!", "bad");
-    poll();
-  });
+/* ---------------- Interactive Demo Showcase Controller ---------------- */
+const DEMO_STAGES = [
+  {
+    step: 1,
+    title: "Stage 1: Pune Airport Morning Flight Peak",
+    desc: "Departure wave (05:00–09:30) driving nominal passenger transit. Baseline contextual flow schedules active across all 4 terminals. 97 smart fixtures nominal.",
+    action: async () => {
+      switchView("command_center");
+      S.spatialLevel = "airport";
+      S.activeTerminal = null;
+      S.activeRestroom = null;
+      S.selectedDevice = null;
+      await api.post("/simulate/stop");
+      toast("Demo: Initialized Pune Airport Baseline Peak", "good");
+      if (S.state) render();
+    }
+  },
+  {
+    step: 2,
+    title: "Stage 2: Continuous Leak Injected on FV-182",
+    desc: "Simulating physical flush valve diaphragm tear on FV-182 (Terminal 2, Restroom T2-RR-02). 2.7 LPM flow detected during 0 occupancy envelope.",
+    action: async () => {
+      switchView("command_center");
+      await api.post("/simulate/continuous-leak?device_id=FV-182");
+      // Drill down spatial twin to Terminal 2 -> T2-RR-02 -> FV-182
+      S.spatialLevel = "device";
+      S.activeTerminal = "Terminal 2";
+      S.activeRestroom = "T2-RR-02";
+      S.selectedDevice = "FV-182";
+      toast("Demo: Injected continuous leak on FV-182", "bad");
+      if (S.state) render();
+    }
+  },
+  {
+    step: 3,
+    title: "Stage 3: AI Sensor Fusion & SLA Auto-Dispatch",
+    desc: "6-Factor multi-sensor fusion classifies physical failure (95% leak confidence, 'Flush Valve Diaphragm Tear'). 15m P1 SLA starts. Auto-dispatched Priya Sharma (ETA 6m).",
+    action: async () => {
+      const alert = (S.state?.alerts || []).find(a => a.device_id === "FV-182") || S.state?.alerts?.[0];
+      if (alert) {
+        openIncidentWorkspace(alert.alert_id);
+      } else {
+        switchView("incident_workspace");
+      }
+      toast("Demo: AI Root-Cause Diagnosed & Priya Sharma Dispatched");
+    }
+  },
+  {
+    step: 4,
+    title: "Stage 4: Closed-Loop Verification & ESG Audit",
+    desc: "Priya Sharma executes repair. Closed-loop verification verifies flow reduction back to 0 LPM and 3.0 bar pressure stabilization. 3,880 L/day savings banked.",
+    action: async () => {
+      const alert = (S.state?.alerts || []).find(a => a.device_id === "FV-182") || S.state?.alerts?.[0];
+      if (alert) {
+        await api.post(`/alerts/${alert.alert_id}/resolve`);
+      }
+      switchView("sustainability");
+      toast("Demo: Closed-loop verification completed! Savings banked.", "good");
+    }
+  }
+];
 
-  t(6500, () => {
-    toast("🔍 Anomaly confirmed by Multi-Sensor Fusion! Inspecting incident...", "info");
-    const leak = (S.state?.alerts || []).find(a => a.device_id === "FV-182" && a.status === "OPEN");
-    if (leak) openIncidentWorkspace(leak.id);
-  });
+let demoCurrentStep = 1;
+let demoAutoplayTimer = null;
 
-  t(14000, () => {
-    toast("🔧 Technician Arjun Sharma dispatched. Initiating resolution verification...", "info");
-    const resBtn = $("#ws-btn-resolve");
-    if (resBtn) resBtn.click();
-  });
+function applyShowcaseStep(stepNum) {
+  demoCurrentStep = stepNum;
+  const stage = DEMO_STAGES[stepNum - 1];
+  if (!stage) return;
 
-  t(19000, () => {
-    toast("🌱 Resolution verified! Viewing Sustainability Ledger...", "good");
-    switchView("sustainability");
-  });
+  // Update pills
+  for (let i = 1; i <= 4; i++) {
+    const pill = $(`#pill-step-${i}`);
+    if (pill) {
+      pill.className = "showcase-step-pill" + (i === stepNum ? " active" : (i < stepNum ? " completed" : ""));
+    }
+  }
 
-  t(24000, () => {
-    toast("🎬 Demo complete! Detect → Diagnose → Dispatch → Conserve", "good");
-  });
+  // Update text
+  const titleEl = $("#showcase-title");
+  const descEl = $("#showcase-desc");
+  if (titleEl) titleEl.textContent = stage.title;
+  if (descEl) descEl.textContent = stage.desc;
+
+  // Update button states
+  const prevBtn = $("#btn-showcase-prev");
+  const nextBtn = $("#btn-showcase-next");
+  if (prevBtn) prevBtn.disabled = (stepNum === 1);
+  if (nextBtn) nextBtn.textContent = (stepNum === 4) ? "Finish Demo ✓" : "Next Step ▶";
+
+  // Execute stage action
+  stage.action();
+}
+
+function startShowcase() {
+  $("#showcase-hud")?.classList.remove("hidden");
+  applyShowcaseStep(1);
+}
+
+function closeShowcase() {
+  if (demoAutoplayTimer) {
+    clearInterval(demoAutoplayTimer);
+    demoAutoplayTimer = null;
+  }
+  $("#showcase-hud")?.classList.add("hidden");
+}
+
+$("#btn-guided-demo")?.addEventListener("click", startShowcase);
+$("#btn-close-showcase")?.addEventListener("click", closeShowcase);
+
+$("#btn-showcase-prev")?.addEventListener("click", () => {
+  if (demoCurrentStep > 1) applyShowcaseStep(demoCurrentStep - 1);
+});
+
+$("#btn-showcase-next")?.addEventListener("click", () => {
+  if (demoCurrentStep < 4) {
+    applyShowcaseStep(demoCurrentStep + 1);
+  } else {
+    closeShowcase();
+    toast("✨ Showcase Demo Complete! Detect → Diagnose → Dispatch → Conserve", "good");
+  }
+});
+
+$("#btn-showcase-autoplay")?.addEventListener("click", (e) => {
+  if (demoAutoplayTimer) {
+    clearInterval(demoAutoplayTimer);
+    demoAutoplayTimer = null;
+    e.target.textContent = "⚡ Auto-Play (15s)";
+    toast("Auto-play paused");
+    return;
+  }
+
+  e.target.textContent = "⏸ Pause Auto-Play";
+  applyShowcaseStep(1);
+  demoAutoplayTimer = setInterval(() => {
+    if (demoCurrentStep < 4) {
+      applyShowcaseStep(demoCurrentStep + 1);
+    } else {
+      clearInterval(demoAutoplayTimer);
+      demoAutoplayTimer = null;
+      e.target.textContent = "⚡ Auto-Play (15s)";
+      toast("✨ Showcase Demo Complete!", "good");
+    }
+  }, 4000);
 });
 
 /* ---------------- Notifications ---------------- */
@@ -899,9 +1089,12 @@ function notifyNewIncidents(st) {
 }
 
 /* ---------------- Initial Boot ---------------- */
+initWebSocket();
 poll();
 setInterval(poll, 2500);
+
 window.addEventListener("resize", () => {
   if (S.state && S.currentView === "command_center") drawMainFlowChart(S.state.timeseries);
   if (S.state && S.currentView === "water_intel") drawIntelFlowChart(S.state.timeseries);
 });
+

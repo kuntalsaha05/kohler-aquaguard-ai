@@ -2,3 +2,5 @@ fastapi==0.118.0
 uvicorn==0.37.0
 numpy
 scikit-learn
+websockets>=13.0
+paho-mqtt>=2.0.0

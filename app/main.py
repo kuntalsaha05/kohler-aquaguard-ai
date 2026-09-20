@@ -7,17 +7,18 @@ Docs: http://127.0.0.1:8000/docs
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ai, benchmarks, engine, sim, views
+from . import ai, benchmarks, engine, mqtt_bridge, reports, sim, views
 from .state import (
     SIM_INTERVAL_SECONDS,
     Store,
@@ -29,12 +30,37 @@ from .state import (
 UI_DIR = os.path.join(os.path.dirname(__file__), "..", "ui")
 
 
+class WebSocketManager:
+    """Manages active live WebSocket connections and broadcast events."""
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                self.disconnect(connection)
+
+
+WS_MANAGER = WebSocketManager()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if not STORE.load():
         sim.build_fleet(STORE)
     else:
         sim.build_fleet(STORE)  # ensure fleet matches current blueprint
+    mqtt_bridge.get_bridge(STORE)
     task = asyncio.create_task(_simulation_loop())
     yield
     task.cancel()
@@ -49,9 +75,13 @@ async def _simulation_loop() -> None:
             engine.process_events(STORE, events)
             if STORE.dirty and STORE.tick_count % 15 == 0:
                 STORE.save()
+            if WS_MANAGER.active_connections:
+                snapshot = views.facility_snapshot(STORE)
+                await WS_MANAGER.broadcast({"type": "tick", "data": snapshot})
         except Exception as exc:  # keep the twin alive no matter what
             print(f"[sim] tick error: {exc!r}")
         await asyncio.sleep(SIM_INTERVAL_SECONDS)
+
 
 
 app = FastAPI(
@@ -112,10 +142,28 @@ def get_evaluation() -> dict:
     return benchmarks.get_evaluation_metrics()
 
 
+@app.websocket("/ws/live")
+async def websocket_live_endpoint(websocket: WebSocket):
+    await WS_MANAGER.connect(websocket)
+    try:
+        # Send initial snapshot immediately upon connection
+        snapshot = views.facility_snapshot(STORE)
+        await websocket.send_json({"type": "init", "data": snapshot})
+        while True:
+            # Handle keep-alive / ping from UI
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        WS_MANAGER.disconnect(websocket)
+    except Exception:
+        WS_MANAGER.disconnect(websocket)
+
+
 # ------------------------------------------------------------- telemetry
 
 @app.post("/telemetry")
-def ingest_telemetry(events: List[TelemetryEvent]) -> dict:
+async def ingest_telemetry(events: List[TelemetryEvent]) -> dict:
     """External telemetry ingestion — same pipeline, external writer priority.
 
     External events claim their devices' writer slots (the simulator pauses
@@ -124,6 +172,9 @@ def ingest_telemetry(events: List[TelemetryEvent]) -> dict:
     leak threshold in ~10 seconds of wall clock.
     """
     result = engine.process_events(STORE, events, external=True)
+    if WS_MANAGER.active_connections:
+        snapshot = views.facility_snapshot(STORE)
+        await WS_MANAGER.broadcast({"type": "telemetry", "data": snapshot})
     return {
         "processed": len(events),
         "alerts_created": len(result["new_alerts"]),
@@ -131,6 +182,7 @@ def ingest_telemetry(events: List[TelemetryEvent]) -> dict:
         "alerts": [a.model_dump(mode="json") for a in result["new_alerts"]],
         "tickets": [t.model_dump(mode="json") for t in result["new_tickets"]],
     }
+
 
 
 @app.get("/devices")
@@ -247,6 +299,44 @@ def ai_command_center(body: AIQuery) -> dict:
 @app.get("/api/report")
 def get_facility_report() -> dict:
     return ai._tool_generate_facility_report(STORE)
+
+
+# ----------------------------------------------------------- executive reports
+
+@app.get("/api/reports/executive")
+def get_executive_report() -> dict:
+    return reports.generate_executive_report(STORE)
+
+
+@app.get("/api/reports/executive/html", response_class=HTMLResponse)
+def get_executive_report_html() -> HTMLResponse:
+    html = reports.generate_executive_report_html(STORE)
+    return HTMLResponse(content=html, status_code=200)
+
+
+# ----------------------------------------------------------------- MQTT bridge
+
+class MQTTPublishRequest(BaseModel):
+    topic: str
+    payload: dict
+
+
+@app.get("/api/mqtt/status")
+def get_mqtt_status() -> dict:
+    bridge = mqtt_bridge.get_bridge(STORE)
+    return bridge.get_status()
+
+
+@app.post("/api/mqtt/publish")
+async def publish_mqtt_message(req: MQTTPublishRequest) -> dict:
+    bridge = mqtt_bridge.get_bridge(STORE)
+    payload_bytes = json.dumps(req.payload).encode("utf-8")
+    res = bridge.ingest_payload(req.topic, payload_bytes)
+    if WS_MANAGER.active_connections:
+        snapshot = views.facility_snapshot(STORE)
+        await WS_MANAGER.broadcast({"type": "telemetry", "data": snapshot})
+    return res
+
 
 
 
