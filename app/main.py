@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ai, audio_diagnostic, benchmarks, engine, feedback, lifecycle, mqtt_bridge, notifications, portfolio, reports, sim, spares, views
+from . import ai, audio_diagnostic, benchmarks, engine, esg, feedback, lifecycle, mqtt_bridge, notifications, portfolio, reports, sim, spares, views
 
 
 from .state import (
@@ -430,11 +430,22 @@ def get_portfolio_summary() -> dict:
     return portfolio.get_portfolio_summary(STORE)
 
 
+# --------------------------------------------------- ESG & Carbon Nexus
+
+@app.get("/api/esg/metrics")
+def get_esg_metrics(tariff: float = 48.50) -> dict:
+    return esg.calculate_esg_metrics(STORE, custom_tariff=tariff)
 
 
+@app.post("/api/simulation/what-if")
+def simulate_what_if_scenario(req: esg.WhatIfRequest) -> dict:
+    return esg.run_what_if_stress_test(req, STORE)
 
 
-# ------------------------------------------------------------- simulation
+@app.get("/api/cmms/work-order/{alert_id}")
+def get_cmms_work_order(alert_id: str) -> dict:
+    return esg.generate_cmms_work_order(alert_id, STORE)
+
 # NOTE: static paths must be declared before the dynamic /simulate/{scenario}
 # route, or FastAPI matches "stop"/"reset" as a scenario name.
 

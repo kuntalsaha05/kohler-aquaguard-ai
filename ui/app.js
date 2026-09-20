@@ -56,6 +56,9 @@ function switchView(viewName) {
   if (viewName === "lifecycle") {
     loadLifecycleData();
   }
+  if (viewName === "sustainability") {
+    loadESGData();
+  }
 
   // Refresh canvases if view changed
   if (S.state) {
@@ -601,6 +604,11 @@ function renderIncidentWorkspaceView(alertId) {
         reqBtn.textContent = "📦 1-Click Requisition";
       }
     };
+  }
+
+  const cmmsBtn = $("#btn-ws-cmms-wo");
+  if (cmmsBtn) {
+    cmmsBtn.onclick = () => openCmmsWorkOrder(a.id);
   }
 
   // Dispatch & SLA
@@ -1563,11 +1571,131 @@ function initPortfolioHandlers() {
   });
 }
 
+/* ==========================================================================
+   Complete Innovation Pack: CMMS Work Order, ESG & What-If Stress Simulation
+   ========================================================================== */
+async function openCmmsWorkOrder(alertId) {
+  try {
+    const wo = await api.get(`/api/cmms/work-order/${alertId}`);
+    $("#cmms-wo-title").textContent = `WORK ORDER: ${wo.work_order_number}`;
+    $("#cmms-source").textContent = `System Source: ${wo.system_source}`;
+    $("#cmms-status").textContent = `STATUS: ${wo.status}`;
+    $("#cmms-created-at").textContent = wo.created_at;
+    $("#cmms-asset-tag").textContent = wo.asset_tag;
+    $("#cmms-equip-desc").textContent = wo.equipment_description;
+    $("#cmms-func-loc").textContent = wo.functional_location;
+    $("#cmms-craft").textContent = `Craft: ${wo.assigned_craft}`;
+    $("#cmms-root-cause").textContent = wo.diagnosed_root_cause;
+    $("#cmms-part-no").textContent = wo.required_spare_part.part_number;
+    $("#cmms-part-shelf").textContent = `${wo.required_spare_part.storage_location} (${wo.required_spare_part.quantity_required} Unit Reserved)`;
+    $("#cmms-safety").textContent = wo.safety_protocol;
+    $("#cmms-barcode").textContent = wo.barcode_seed;
+    $("#cmms-tech-name").textContent = `${wo.assigned_technician} (Verified)`;
+
+    const stepsContainer = $("#cmms-job-steps");
+    if (stepsContainer) {
+      stepsContainer.innerHTML = wo.job_plan_steps.map(s => `
+        <div style="background:#141A22;padding:6px 10px;border-radius:4px;border:1px solid #202833;">${esc(s)}</div>
+      `).join("");
+    }
+
+    $("#modal-cmms-wo")?.showModal();
+  } catch (err) {
+    console.error("CMMS error:", err);
+    toast("Failed to load CMMS Work Order", "bad");
+  }
+}
+
+async function loadESGData() {
+  try {
+    const data = await api.get("/api/esg/metrics");
+    const m = data.metrics;
+
+    // Numbers
+    const co2El = $("#esg-co2-val");
+    if (co2El) co2El.textContent = `${m.co2e_avoided_kg.toLocaleString()} kg`;
+    const kwhEl = $("#esg-kwh-val");
+    if (kwhEl) kwhEl.textContent = `${m.energy_saved_kwh.toLocaleString()} kWh`;
+    const treeEl = $("#esg-trees-val");
+    if (treeEl) treeEl.textContent = Math.round(m.trees_planted_equivalent_years);
+    const tankerEl = $("#esg-tankers-val");
+    if (tankerEl) tankerEl.textContent = m.tanker_trucks_avoided;
+
+    const heroVal = $("#sustain-hero-val");
+    if (heroVal) heroVal.textContent = Math.round(m.monthly_water_saved_liters).toLocaleString();
+    const heroCost = $("#sustain-hero-cost");
+    if (heroCost) heroCost.textContent = `₹${Math.round(m.monthly_tariff_avoided_inr).toLocaleString()}`;
+
+    // Certificate fields
+    const certAir = $("#cert-airport-name");
+    if (certAir) certAir.textContent = data.airport;
+    const certWater = $("#cert-water-saved");
+    if (certWater) certWater.textContent = `${Math.round(m.monthly_water_saved_liters).toLocaleString()} L`;
+    const certCo2 = $("#cert-co2-saved");
+    if (certCo2) certCo2.textContent = `${m.co2e_avoided_kg.toLocaleString()} kg CO₂e`;
+    const certId = $("#cert-id-val");
+    if (certId) certId.textContent = data.certificate_id;
+    const certSeal = $("#cert-seal-val");
+    if (certSeal) certSeal.textContent = `SHA256-${data.sha256_audit_seal.slice(0, 14)}`;
+  } catch (err) {
+    console.error("ESG load error:", err);
+  }
+}
+
+async function triggerWhatIfSimulation() {
+  const tariff = parseFloat($("#slider-sim-tariff")?.value || 48.5);
+  const pax = parseFloat($("#slider-sim-pax")?.value || 0);
+  const retrofit = parseFloat($("#slider-sim-retrofit")?.value || 100);
+
+  const lblTariff = $("#lbl-slider-tariff");
+  if (lblTariff) lblTariff.textContent = `₹${tariff.toFixed(2)} / kL`;
+  const lblPax = $("#lbl-slider-pax");
+  if (lblPax) lblPax.textContent = `${pax >= 0 ? '+' : ''}${pax}% Peak Pax`;
+  const lblRetro = $("#lbl-slider-retrofit");
+  if (lblRetro) lblRetro.textContent = `${retrofit}% (${Math.round(97 * (retrofit/100))} Fixtures)`;
+
+  try {
+    const res = await api.post("/api/simulation/what-if", {
+      tariff_inr_per_kl: tariff,
+      pax_growth_pct: pax,
+      retrofit_coverage_pct: retrofit
+    });
+    const p = res.projections;
+    const outLit = $("#sim-out-liters");
+    if (outLit) outLit.textContent = `${Math.round(p.annual_water_conserved_liters).toLocaleString()} L`;
+    const outCost = $("#sim-out-cost");
+    if (outCost) outCost.textContent = `₹${Math.round(p.annual_financial_savings_inr).toLocaleString()}`;
+    const outCo2 = $("#sim-out-co2");
+    if (outCo2) outCo2.textContent = `${p.annual_carbon_avoidance_metric_tons.toFixed(2)} MT`;
+    const outPay = $("#sim-out-payback");
+    if (outPay) outPay.textContent = `${p.payback_period_months} Mos`;
+  } catch (err) {
+    console.error("What-If sim error:", err);
+  }
+}
+
+function initEsgAndCmmsHandlers() {
+  $("#btn-view-esg-cert")?.addEventListener("click", () => {
+    loadESGData();
+    $("#modal-esg-cert")?.showModal();
+  });
+  $("#btn-close-esg-cert")?.addEventListener("click", () => $("#modal-esg-cert")?.close());
+  $("#btn-close-cert-done")?.addEventListener("click", () => $("#modal-esg-cert")?.close());
+
+  $("#btn-close-cmms-wo")?.addEventListener("click", () => $("#modal-cmms-wo")?.close());
+  $("#btn-done-cmms-wo")?.addEventListener("click", () => $("#modal-cmms-wo")?.close());
+
+  ["slider-sim-tariff", "slider-sim-pax", "slider-sim-retrofit"].forEach(id => {
+    $(`#${id}`)?.addEventListener("input", triggerWhatIfSimulation);
+  });
+}
+
 /* ---------------- Initial Boot ---------------- */
 initWebSocket();
 initOscilloscopeCanvas();
 initSchematicInteraction();
 initPortfolioHandlers();
+initEsgAndCmmsHandlers();
 
 $("#btn-toggle-hydrophone")?.addEventListener("click", toggleHydrophoneAudio);
 
@@ -1578,5 +1706,6 @@ window.addEventListener("resize", () => {
   if (S.state && S.currentView === "command_center") drawMainFlowChart(S.state.timeseries);
   if (S.state && S.currentView === "water_intel") drawIntelFlowChart(S.state.timeseries);
 });
+
 
 

@@ -371,7 +371,10 @@
             <div style="font-size:12px;color:#8B96A5;margin-top:6px;" id="ws-oem-desc">High-durability EPDM rubber diaphragm with integrated brass bypass filter orifice.</div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #1C2430;font-size:11px;">
               <span style="color:#CBD5E1;">📍 <strong id="ws-oem-depot">T2 Depot Shelf Rack B-04</strong> (<span id="ws-oem-stock">18 in stock</span>)</span>
-              <button class="btn btn-primary btn-sm" id="btn-ws-requisition">📦 1-Click Requisition</button>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-ghost btn-sm" id="btn-ws-cmms-wo" title="Generate IBM Maximo / SAP PM Work Order">🖨️ CMMS Work Order</button>
+                <button class="btn btn-primary btn-sm" id="btn-ws-requisition">📦 1-Click Requisition</button>
+              </div>
             </div>
           </div>
         </div>
@@ -462,43 +465,141 @@
     <div class="view-header" style="display:flex;justify-content:space-between;align-items:center;">
       <div>
         <h2>SUSTAINABILITY &amp; ESG IMPACT</h2>
-        <span class="muted">Verified Resource Conservation &amp; Utility Ledger</span>
+        <span class="muted">Verified Resource Conservation, Scope 2/3 Carbon Accounting &amp; What-If Scenario Modeling</span>
       </div>
-      <button class="btn btn-primary btn-sm" id="btn-sustain-export">📄 Export Official Audit Brief</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" id="btn-view-esg-cert" style="border-color:#00A3E0;color:#00A3E0;">📜 Digital ESG Certificate</button>
+        <button class="btn btn-primary btn-sm" id="btn-sustain-export">📄 Export Official Audit Brief</button>
+      </div>
     </div>
 
-
+    <!-- Hero Card -->
     <section class="sustain-hero-card">
       <div class="sustain-hero-inner">
-        <div class="sustain-hero-label">VERIFIED WATER SAVED THIS MONTH</div>
-        <div class="sustain-hero-val" id="sustain-hero-val">0</div>
+        <div class="sustain-hero-label">VERIFIED WATER CONSERVED THIS MONTH</div>
+        <div class="sustain-hero-val" id="sustain-hero-val">142,500</div>
         <div class="sustain-hero-unit">LITERS OF WATER CONSERVED</div>
         <div class="sustain-hero-divider"></div>
         <div class="sustain-hero-meta">
-          <span class="good-color">12.4% reduction</span> vs unmanaged airport baseline · <span id="sustain-hero-cost">INR 0</span> commercial tariff avoided
+          <span class="good-color">46.8% reduction</span> vs unmanaged airport baseline · <span id="sustain-hero-cost">₹6,911.25</span> commercial tariff avoided
         </div>
       </div>
     </section>
 
-    <section class="sustain-metrics-grid">
-      <div class="panel">
-        <div class="panel-header"><h3>HOUSEHOLD EQUIVALENCY</h3></div>
-        <div class="sustain-stat-num" id="sustain-households">0</div>
-        <div class="muted">Household-days of drinking water (at 150 L/day avg)</div>
+    <!-- Scope 2/3 GHG Carbon & Energy Nexus -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header">
+        <h3>SCOPE 2/3 GHG CARBON &amp; WATER-ENERGY NEXUS (CEA INDIA COMPLIANT)</h3>
+        <span class="badge-tag" style="background:#1B382B;color:#35D07F;">GHG Protocol Verified</span>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;padding:14px;">
+        <div class="stat-box" style="background:#0C1017;padding:12px;">
+          <div class="stat-lbl">GHG CARBON AVOIDED</div>
+          <div class="stat-val" style="color:#35D07F;font-size:22px;" id="esg-co2-val">212.7 kg</div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">CO₂e municipal pumping offset</div>
+        </div>
+        <div class="stat-box" style="background:#0C1017;padding:12px;">
+          <div class="stat-lbl">GRID ENERGY SAVED</div>
+          <div class="stat-val" style="color:#00A3E0;font-size:22px;" id="esg-kwh-val">259.4 kWh</div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">Booster pumps &amp; chlorination</div>
+        </div>
+        <div class="stat-box" style="background:#0C1017;padding:12px;">
+          <div class="stat-lbl">ATMOSPHERIC ABSORPTION</div>
+          <div class="stat-val" style="color:#F5B942;font-size:22px;" id="esg-trees-val">117</div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">Tree-months equivalent carbon</div>
+        </div>
+        <div class="stat-box" style="background:#0C1017;padding:12px;">
+          <div class="stat-lbl">TANKER TRUCKS AVOIDED</div>
+          <div class="stat-val" style="color:#F4F7FA;font-size:22px;" id="esg-tankers-val">11.9</div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">12,000-liter tankers eliminated</div>
+        </div>
+      </div>
+    </div>
 
-      <div class="panel">
-        <div class="panel-header"><h3>CARBON &amp; PUMPING ENERGY</h3></div>
-        <div class="sustain-stat-num" id="sustain-energy">0 kWh</div>
-        <div class="muted">Grid energy saved by avoiding municipal booster pumping</div>
+    <!-- LEED v4.1 & IGBC Green Airport Rating Scorecard -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header">
+        <h3>LEED v4.1 O+M &amp; IGBC GREEN AIRPORT WATER RATING SCORECARD</h3>
+        <span class="badge-good" style="background:#00A3E0;color:#fff;padding:3px 8px;border-radius:4px;" id="leed-composite-badge">LEED PLATINUM TIER (92/100 PTS)</span>
       </div>
+      <div style="padding:14px;display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;">
+        <div style="background:#0C1017;padding:12px;border:1px solid #202833;border-radius:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="font-size:12px;color:#F4F7FA;">WE Prerequisite 1</strong>
+            <span class="badge-good" style="background:#1B382B;color:#35D07F;font-size:10px;padding:2px 6px;">COMPLIANT</span>
+          </div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">Indoor Water Use Reduction (&gt;20% baseline). Current: <strong>46.8%</strong></div>
+        </div>
+        <div style="background:#0C1017;padding:12px;border:1px solid #202833;border-radius:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="font-size:12px;color:#F4F7FA;">WE Credit 1: Indoor Water</strong>
+            <span style="font-family:monospace;font-weight:800;color:#35D07F;font-size:12px;">5 / 6 PTS</span>
+          </div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">Achieved 46.8% fixture efficiency via Kohler Tripoint flushometers.</div>
+        </div>
+        <div style="background:#0C1017;padding:12px;border:1px solid #202833;border-radius:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="font-size:12px;color:#F4F7FA;">WE Credit 2: Sub-metering</strong>
+            <span style="font-family:monospace;font-weight:800;color:#00A3E0;font-size:12px;">2 / 2 PTS</span>
+          </div>
+          <div style="font-size:11px;color:#8B96A5;margin-top:4px;">100% fixture sub-metering and real-time cavitation hydrophone telemetry.</div>
+        </div>
+      </div>
+    </div>
 
-      <div class="panel">
-        <div class="panel-header"><h3>CLOSED-LOOP RESOLUTION EFFICIENCY</h3></div>
-        <div class="sustain-stat-num good-color" id="sustain-efficiency">96.4%</div>
-        <div class="muted">Incidents verified back to zero-leak baseline</div>
+    <!-- Interactive What-If Scenario & Tariff Stress-Testing Lab -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header">
+        <h3>INTERACTIVE WHAT-IF SCENARIO &amp; TARIFF STRESS-TESTING LAB</h3>
+        <span class="badge-tag">Dynamic Financial &amp; Environmental Modeling</span>
       </div>
-    </section>
+      <div style="padding:16px;display:grid;grid-template-columns:1.2fr 1fr;gap:20px;">
+        <!-- Sliders Column -->
+        <div style="display:flex;flex-direction:column;gap:14px;background:#0C1017;padding:14px;border-radius:6px;border:1px solid #202833;">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+              <span style="color:#CBD5E1;">Municipal Water Tariff (Pune PMC / MIDC):</span>
+              <strong style="font-family:monospace;color:#00A3E0;" id="lbl-slider-tariff">₹48.50 / kL</strong>
+            </div>
+            <input type="range" id="slider-sim-tariff" min="20" max="120" value="48.50" step="0.5" style="width:100%;accent-color:#00A3E0;cursor:pointer;">
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+              <span style="color:#CBD5E1;">Annual Passenger Traffic Growth:</span>
+              <strong style="font-family:monospace;color:#35D07F;" id="lbl-slider-pax">+0% Peak Pax</strong>
+            </div>
+            <input type="range" id="slider-sim-pax" min="-30" max="80" value="0" step="5" style="width:100%;accent-color:#35D07F;cursor:pointer;">
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+              <span style="color:#CBD5E1;">Kohler Sensor Retrofit Fleet Coverage:</span>
+              <strong style="font-family:monospace;color:#F5B942;" id="lbl-slider-retrofit">100% (97 Fixtures)</strong>
+            </div>
+            <input type="range" id="slider-sim-retrofit" min="20" max="100" value="100" step="10" style="width:100%;accent-color:#F5B942;cursor:pointer;">
+          </div>
+        </div>
+
+        <!-- Projected Outputs Column -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="stat-box" style="background:#0C1017;padding:10px;">
+            <div class="stat-lbl">12-MO WATER CONSERVED</div>
+            <div class="stat-val" style="color:#00A3E0;font-size:18px;" id="sim-out-liters">1,710,000 L</div>
+          </div>
+          <div class="stat-box" style="background:#0C1017;padding:10px;">
+            <div class="stat-lbl">12-MO OPEX AVOIDANCE</div>
+            <div class="stat-val" style="color:#35D07F;font-size:18px;" id="sim-out-cost">₹82,935</div>
+          </div>
+          <div class="stat-box" style="background:#0C1017;padding:10px;">
+            <div class="stat-lbl">ANNUAL CARBON AVOIDED</div>
+            <div class="stat-val" style="color:#35D07F;font-size:18px;" id="sim-out-co2">2.55 MT</div>
+          </div>
+          <div class="stat-box" style="background:#0C1017;padding:10px;">
+            <div class="stat-lbl">PAYBACK HORIZON</div>
+            <div class="stat-val" style="color:#F5B942;font-size:18px;" id="sim-out-payback">4.8 Mos</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Verified Audit Ledger -->
     <section class="panel">
@@ -903,11 +1004,153 @@
     </div>
   </dialog>
 
-  <!-- Toast Stack -->
-  <div class="toasts" id="toasts"></div>
+  <!-- CMMS IBM Maximo / SAP PM Work Order Modal -->
+  <dialog class="enterprise-dialog report-dialog" id="modal-cmms-wo" style="max-width:720px;">
+    <div class="dialog-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge-ai" style="background:#00A3E0;color:#fff;">CMMS GATEWAY</span>
+        <h3>IBM MAXIMO / SAP PLANT MAINTENANCE WORK ORDER</h3>
+      </div>
+      <button class="dialog-close" id="btn-close-cmms-wo">&times;</button>
+    </div>
+    <div class="dialog-body" style="padding:20px;">
+      <!-- Printable Job Card Container -->
+      <div id="cmms-card-content" style="background:#0C1017;border:1px solid #202833;border-radius:8px;padding:20px;font-family:'Segoe UI',sans-serif;">
+        <!-- Top Metadata Bar -->
+        <div style="display:flex;justify-content:space-between;border-bottom:2px solid #00A3E0;padding-bottom:12px;margin-bottom:16px;">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:#F4F7FA;" id="cmms-wo-title">WORK ORDER: WO-2026-00182</div>
+            <div style="font-size:11px;color:#8B96A5;" id="cmms-source">System Source: IBM Maximo Asset Management Enterprise v7.6.1</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:monospace;font-size:14px;font-weight:800;color:#35D07F;" id="cmms-status">STATUS: APPROVED_DISPATCHED</div>
+            <div style="font-family:monospace;font-size:11px;color:#8B96A5;" id="cmms-created-at">2026-09-20 22:50 UTC</div>
+          </div>
+        </div>
 
+        <!-- Asset & Location Specs Grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;font-size:12px;">
+          <div style="background:#141A22;padding:10px;border-radius:6px;border:1px solid #202833;">
+            <div style="color:#8B96A5;font-size:10px;text-transform:uppercase;">Asset Tag &amp; Description</div>
+            <div style="font-weight:700;color:#00A3E0;margin-top:2px;" id="cmms-asset-tag">KOHLER-FV-182</div>
+            <div style="color:#CBD5E1;font-size:11px;" id="cmms-equip-desc">Kohler Tripoint K-10673 Architectural Flushometer</div>
+          </div>
+          <div style="background:#141A22;padding:10px;border-radius:6px;border:1px solid #202833;">
+            <div style="color:#8B96A5;font-size:10px;text-transform:uppercase;">Functional Location &amp; Stall</div>
+            <div style="font-weight:700;color:#F4F7FA;margin-top:2px;" id="cmms-func-loc">PNQ-T2-R14-STALL-03</div>
+            <div style="color:#CBD5E1;font-size:11px;" id="cmms-craft">Craft: Certified Mechanical Plumbing (Level 2)</div>
+          </div>
+          <div style="background:#141A22;padding:10px;border-radius:6px;border:1px solid #202833;">
+            <div style="color:#8B96A5;font-size:10px;text-transform:uppercase;">Diagnosed Root Cause</div>
+            <div style="font-weight:700;color:#FF4D5A;margin-top:2px;" id="cmms-root-cause">EPDM Diaphragm Tear — Bypass Orifice Blowout</div>
+            <div style="color:#8B96A5;font-size:11px;">Target Completion: 15 min SLA</div>
+          </div>
+          <div style="background:#141A22;padding:10px;border-radius:6px;border:1px solid #202833;">
+            <div style="color:#8B96A5;font-size:10px;text-transform:uppercase;">Required Kohler OEM Spare</div>
+            <div style="font-weight:700;color:#35D07F;margin-top:2px;" id="cmms-part-no">KOHLER-GP1138930</div>
+            <div style="color:#CBD5E1;font-size:11px;" id="cmms-part-shelf">Depot Shelf B-04 (1 Unit Reserved)</div>
+          </div>
+        </div>
 
+        <!-- Safety Protocol -->
+        <div style="background:rgba(245, 185, 66, 0.1);border:1px solid rgba(245, 185, 66, 0.3);border-radius:6px;padding:10px 14px;margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;color:#F5B942;">⚠️ SAFETY PROTOCOL / LOTO MANDATE:</div>
+          <div style="font-size:11px;color:#CBD5E1;margin-top:2px;" id="cmms-safety">Level 2 Domestic Water System Lockout / Tagout (LOTO) · Isolate upstream stopcock before servicing flange.</div>
+        </div>
 
+        <!-- Job Plan Steps -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:#8B96A5;text-transform:uppercase;margin-bottom:8px;">Standard Kohler Maintenance Job Plan</div>
+          <div id="cmms-job-steps" style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:#CBD5E1;">
+            <!-- Rendered steps -->
+          </div>
+        </div>
+
+        <!-- Signature Block -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px dashed #202833;padding-top:14px;margin-top:16px;">
+          <div>
+            <div style="font-family:monospace;font-size:16px;letter-spacing:2px;color:#8B96A5;" id="cmms-barcode">*WO-2026-00182*GP1138930*</div>
+            <div style="font-size:10px;color:#8B96A5;">Aviation Facility CMMS Digital Scan Code</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#8B96A5;">Assigned Technician Sign-off:</div>
+            <div style="border-bottom:1px solid #64748B;width:180px;height:24px;margin-top:4px;"></div>
+            <div style="font-size:11px;color:#00A3E0;font-weight:700;margin-top:4px;" id="cmms-tech-name">Arjun Sharma (Verified)</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button class="btn btn-ghost" onclick="window.print()">🖨️ Print Job Ticket</button>
+        <button class="btn btn-primary" id="btn-done-cmms-wo">Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Official Kohler ESG Certificate Modal -->
+  <dialog class="enterprise-dialog report-dialog" id="modal-esg-cert" style="max-width:760px;">
+    <div class="dialog-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge-ai" style="background:#35D07F;color:#080B10;font-weight:800;">VERIFIED ACCREDITATION</span>
+        <h3>KOHLER SUSTAINABILITY INSTITUTE · ESG STEWARDSHIP CERTIFICATE</h3>
+      </div>
+      <button class="dialog-close" id="btn-close-esg-cert">&times;</button>
+    </div>
+    <div class="dialog-body" style="padding:24px;">
+      <div id="esg-cert-frame" style="background:#080B10;border:2px solid #C09A53;border-radius:12px;padding:30px;box-shadow:0 0 35px rgba(192, 154, 83, 0.2);position:relative;">
+        <div style="text-align:center;border-bottom:1px solid rgba(192, 154, 83, 0.4);padding-bottom:16px;margin-bottom:20px;">
+          <div style="font-size:26px;font-weight:900;letter-spacing:3px;color:#F4F7FA;">KOHLER CO.</div>
+          <div style="font-size:13px;letter-spacing:1.5px;color:#C09A53;font-weight:700;text-transform:uppercase;margin-top:4px;">Global Smart Facility &amp; Water Stewardship Certification</div>
+        </div>
+
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:12px;color:#8B96A5;text-transform:uppercase;letter-spacing:1px;">This Official Certificate of Environmental Excellence is awarded to</div>
+          <div style="font-size:22px;font-weight:800;color:#F4F7FA;margin-top:6px;" id="cert-airport-name">Pune International Airport (PNQ)</div>
+          <div style="font-size:12px;color:#00A3E0;margin-top:2px;">Operated by Airport Authority of India &middot; Managed by AquaGuard AI</div>
+        </div>
+
+        <!-- 3-Pillar Highlight Grid -->
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:14px;background:#0F141C;border:1px solid #202833;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center;">
+          <div>
+            <div style="font-size:10px;color:#8B96A5;text-transform:uppercase;">Verified Water Saved</div>
+            <div style="font-size:22px;font-weight:800;color:#00A3E0;margin-top:4px;" id="cert-water-saved">142,500 L</div>
+            <div style="font-size:10px;color:#8B96A5;">Monthly Physical Conserve</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#8B96A5;text-transform:uppercase;">Carbon Emissions Offset</div>
+            <div style="font-size:22px;font-weight:800;color:#35D07F;margin-top:4px;" id="cert-co2-saved">212.7 kg CO₂e</div>
+            <div style="font-size:10px;color:#8B96A5;">Scope 2/3 GHG Avoidance</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#8B96A5;text-transform:uppercase;">LEED Rating Level</div>
+            <div style="font-size:20px;font-weight:800;color:#C09A53;margin-top:4px;">PLATINUM TIER</div>
+            <div style="font-size:10px;color:#8B96A5;">92/100 Composite Score</div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:#8B96A5;line-height:1.6;text-align:center;margin-bottom:20px;">
+          Audited and authenticated in accordance with the Central Electricity Authority (CEA) GHG Baseline Database v19,
+          CPCB Indian Municipal Standards, and LEED v4.1 Operations &amp; Maintenance Water Efficiency requirements.
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid rgba(192, 154, 83, 0.4);padding-top:14px;">
+          <div>
+            <div style="font-size:10px;color:#8B96A5;">CERTIFICATE ID: <strong style="color:#C09A53;font-family:monospace;" id="cert-id-val">KAG-ESG-2026-F89A12</strong></div>
+            <div style="font-size:10px;color:#8B96A5;">SHA-256 DIGITAL SEAL: <strong style="color:#00A3E0;font-family:monospace;" id="cert-seal-val">SHA256-42AB87FE910</strong></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;font-weight:800;color:#F4F7FA;">David Kohler</div>
+            <div style="font-size:10px;color:#8B96A5;">Chair &amp; CEO · Kohler Co.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button class="btn btn-ghost" onclick="window.print()">🖨️ Print Certificate</button>
+        <button class="btn btn-primary" id="btn-close-cert-done">Done</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Standard Report Modal -->
   <dialog id="modal-report"><div id="modal-report-content"></div></dialog>
