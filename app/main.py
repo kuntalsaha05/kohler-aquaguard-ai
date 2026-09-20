@@ -18,7 +18,8 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ai, benchmarks, engine, mqtt_bridge, reports, sim, views
+from . import ai, benchmarks, engine, feedback, lifecycle, mqtt_bridge, notifications, reports, sim, spares, views
+
 from .state import (
     SIM_INTERVAL_SECONDS,
     Store,
@@ -107,7 +108,13 @@ def index():
     return FileResponse(os.path.join(UI_DIR, "index.html"))
 
 
+@app.get("/mobile", include_in_schema=False)
+def mobile():
+    return FileResponse(os.path.join(UI_DIR, "mobile.html"))
+
+
 app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
+
 
 
 # -------------------------------------------------------------- realtime
@@ -336,6 +343,72 @@ async def publish_mqtt_message(req: MQTTPublishRequest) -> dict:
         snapshot = views.facility_snapshot(STORE)
         await WS_MANAGER.broadcast({"type": "telemetry", "data": snapshot})
     return res
+
+
+# ----------------------------------------------------------------- Spares & OEM
+
+@app.get("/api/spares/catalog")
+def get_spares_catalog() -> dict:
+    return {"catalog": spares.KOHLER_OEM_CATALOG}
+
+
+@app.get("/api/spares/inventory")
+def get_spares_inventory() -> dict:
+    return spares.get_all_inventory()
+
+
+@app.get("/api/spares/part/{root_cause}")
+def get_part_for_root_cause(root_cause: str) -> dict:
+    return spares.get_part_for_incident(root_cause)
+
+
+@app.post("/api/spares/requisition")
+def create_spares_requisition(req: spares.RequisitionRequest) -> dict:
+    try:
+        return spares.create_requisition(req)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+
+
+# --------------------------------------------------- Lifecycle & Degradation
+
+@app.get("/api/lifecycle/fleet")
+def get_fleet_lifecycle() -> dict:
+    return {"fleet_lifecycle": lifecycle.get_fleet_lifecycle(STORE)}
+
+
+@app.get("/api/lifecycle/predictions")
+def get_lifecycle_predictions() -> dict:
+    return lifecycle.get_predictive_overview(STORE)
+
+
+# ------------------------------------------------- Passenger QR Feedback Fusion
+
+@app.post("/api/feedback")
+async def submit_passenger_feedback(fb: feedback.PassengerFeedback) -> dict:
+    res = feedback.ingest_passenger_feedback(fb, STORE)
+    if WS_MANAGER.active_connections:
+        snapshot = views.facility_snapshot(STORE)
+        await WS_MANAGER.broadcast({"type": "feedback", "data": snapshot, "feedback": res})
+    return res
+
+
+@app.get("/api/feedback/recent")
+def get_recent_feedback() -> dict:
+    return {"feedback": feedback.get_recent_feedback()}
+
+
+# ---------------------------------------------------- Technician Dispatch CAD
+
+@app.get("/api/notifications/dispatch-log")
+def get_dispatch_notifications() -> list:
+    return notifications.get_dispatch_log()
+
+
+@app.post("/api/notifications/test-dispatch")
+def test_dispatch_notification(req: notifications.DispatchNotificationRequest) -> dict:
+    return notifications.send_dispatch_notification(req)
+
 
 
 

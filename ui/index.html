@@ -24,6 +24,7 @@
       <button class="nav-tab active" data-view="command_center">Command Center</button>
       <button class="nav-tab" data-view="water_intel">Water Intelligence</button>
       <button class="nav-tab" data-view="sustainability">Sustainability</button>
+      <button class="nav-tab" data-view="lifecycle">Asset Lifecycle</button>
       <button class="nav-tab" data-view="ai_agent">AquaGuard AI</button>
       <button class="nav-tab" data-view="benchmarks">Benchmarks</button>
     </nav>
@@ -36,11 +37,14 @@
         <span class="telemetry-tick" id="telemetry-tick">0.8s ago</span>
       </div>
       <div class="header-clock" id="live-clock">--:--:--</div>
+      <button class="btn btn-ghost btn-sm" id="btn-open-feedback" title="Simulate Passenger QR Feedback">📱 QR Feedback</button>
+      <a href="/mobile" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open Field Tech Mobile Console">👷 FieldOps</a>
       <button class="btn btn-export-report" id="btn-export-report">📄 Export Report</button>
       <button class="btn btn-scenario" id="btn-open-sim">⚡ Scenarios</button>
       <button class="btn btn-guided-demo" id="btn-guided-demo">▶ Showcase Demo</button>
     </div>
   </header>
+
 
 
   <!-- View 1: Command Center (Default Main Dashboard) -->
@@ -236,8 +240,31 @@
           <div class="ws-ai-narrative" id="ws-diagnosis-text">--</div>
         </div>
 
+        <!-- Genuine Kohler OEM Spares Requisition Card -->
+        <div class="panel" id="ws-oem-spares-panel">
+          <div class="panel-header">
+            <h3>GENUINE KOHLER OEM SPARE</h3>
+            <span class="badge-tag" id="ws-oem-status" style="background:#1B382B;color:#35D07F;">IN STOCK</span>
+          </div>
+          <div class="oem-card-body" style="padding:14px;background:#141A22;border-radius:8px;border:1px solid #202833;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-family:monospace;font-size:13px;font-weight:700;color:#00A3E0;" id="ws-oem-partno">KOHLER-GP1138930</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px;" id="ws-oem-name">Diaphragm Assembly Repair Kit (Tripoint)</div>
+              </div>
+              <div style="font-family:monospace;font-size:15px;font-weight:800;color:#35D07F;" id="ws-oem-cost">₹1,850</div>
+            </div>
+            <div style="font-size:12px;color:#8B96A5;margin-top:6px;" id="ws-oem-desc">High-durability EPDM rubber diaphragm with integrated brass bypass filter orifice.</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #1C2430;font-size:11px;">
+              <span style="color:#CBD5E1;">📍 <strong id="ws-oem-depot">T2 Depot Shelf Rack B-04</strong> (<span id="ws-oem-stock">18 in stock</span>)</span>
+              <button class="btn btn-primary btn-sm" id="btn-ws-requisition">📦 1-Click Requisition</button>
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-header">
+
             <h3>DISPATCH &amp; SLA MANAGEMENT</h3>
             <span class="sla-badge" id="ws-sla-badge">15 min SLA</span>
           </div>
@@ -371,8 +398,71 @@
     </section>
   </main>
 
-  <!-- View 5: AquaGuard AI Agent (Command Center) -->
+  <!-- View 5: Asset Lifecycle & Predictive Maintenance -->
+  <main class="view-container" id="view-lifecycle">
+    <div class="view-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2>ASSET LIFECYCLE &amp; PREDICTIVE DEGRADATION</h2>
+        <span class="muted">Cumulative Solenoid Cycle Wear, Cavitation Acoustics &amp; 7-Day Failure Forecasts</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-refresh-lifecycle">↺ Refresh Lifecycle Data</button>
+    </div>
+
+    <!-- Predictive Overview Strip -->
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:16px;margin-bottom:24px;">
+      <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">MONITORED ASSETS</div>
+        <div style="font-size:32px;font-weight:800;font-family:monospace;color:#F4F7FA;margin-top:4px;" id="lc-total-assets">97</div>
+        <div style="font-size:12px;color:#8B96A5;">Across 12 airport restrooms</div>
+      </div>
+      <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">AVERAGE FLEET WEAR</div>
+        <div style="font-size:32px;font-weight:800;font-family:monospace;color:#00A3E0;margin-top:4px;" id="lc-avg-wear">24.2%</div>
+        <div style="font-size:12px;color:#8B96A5;">Relative to 500k rated cycles</div>
+      </div>
+      <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">PREDICTIVE OVERHAUL WATCH</div>
+        <div style="font-size:32px;font-weight:800;font-family:monospace;color:#F5B942;margin-top:4px;" id="lc-watch-count">4</div>
+        <div style="font-size:12px;color:#8B96A5;">Fixtures approaching &gt;70% wear band</div>
+      </div>
+      <div class="panel" style="padding:16px;">
+        <div style="font-size:11px;color:#8B96A5;text-transform:uppercase;">PREVENTIVE SAVINGS AVOIDED</div>
+        <div style="font-size:32px;font-weight:800;font-family:monospace;color:#35D07F;margin-top:4px;" id="lc-savings">₹58,000</div>
+        <div style="font-size:12px;color:#8B96A5;">Emergency downtime &amp; loss avoided</div>
+      </div>
+    </div>
+
+    <!-- Top Vulnerable Assets Table -->
+    <div class="panel" style="margin-bottom:24px;">
+      <div class="panel-header">
+        <h3>TOP VULNERABLE FIXTURES (7-DAY PREDICTIVE OVERHAUL QUEUE)</h3>
+        <span class="badge-tag">Proactive Scheduling</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;" id="table-lifecycle-assets">
+          <thead>
+            <tr style="border-bottom:1px solid #202833;color:#8B96A5;text-align:left;">
+              <th style="padding:12px;">Fixture ID</th>
+              <th style="padding:12px;">Location</th>
+              <th style="padding:12px;">Category</th>
+              <th style="padding:12px;">Cycles Used / Rating</th>
+              <th style="padding:12px;">Wear %</th>
+              <th style="padding:12px;">Vibration / Cavitation</th>
+              <th style="padding:12px;">7-Day Failure Risk</th>
+              <th style="padding:12px;">Recommended Preventive Action</th>
+            </tr>
+          </thead>
+          <tbody id="lifecycle-tbody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- View 6: AquaGuard AI Agent (Command Center) -->
   <main class="view-container" id="view-ai-agent">
+
     <div class="ai-workspace-split">
 
       <!-- Left Column: Agent Chat Interface -->
@@ -590,8 +680,59 @@
     </div>
   </dialog>
 
+  <!-- Passenger QR Feedback Simulation Modal -->
+  <dialog class="enterprise-dialog" id="modal-feedback" style="max-width:540px;">
+    <div class="dialog-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">📱</span>
+        <h3>PASSENGER QR RESTROOM FEEDBACK</h3>
+      </div>
+      <button class="dialog-close" id="btn-close-feedback">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <p style="font-size:12px;color:#8B96A5;margin-bottom:14px;line-height:1.4;">
+        Simulate an airport traveler scanning the QR code on a restroom door to report a water problem.
+        AquaGuard AI correlates passenger feedback with physical IoT telemetry to boost incident confidence and prioritize dispatch.
+      </p>
+      <form id="form-passenger-feedback" style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:11px;color:#8B96A5;font-weight:700;">RESTROOM LOCATION</label>
+          <select id="fb-restroom" style="width:100%;padding:8px;background:#141A22;border:1px solid #202833;color:#fff;border-radius:6px;margin-top:4px;">
+            <option value="T2-RR-02">Terminal 2 · Restroom T2-RR-02 (Departure Gates)</option>
+            <option value="T1-RR-01">Terminal 1 · Restroom T1-RR-01</option>
+            <option value="T3-RR-01">Terminal 3 · Restroom T3-RR-01</option>
+            <option value="ARR-RR-01">Arrivals Hall · Restroom ARR-RR-01</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#8B96A5;font-weight:700;">ISSUE CATEGORY</label>
+          <select id="fb-category" style="width:100%;padding:8px;background:#141A22;border:1px solid #202833;color:#fff;border-radius:6px;margin-top:4px;">
+            <option value="running_toilet">💧 Running Toilet / Continuous Flush Leak</option>
+            <option value="water_leak">⚠️ Water Puddling on Floor</option>
+            <option value="low_pressure">📉 Low Faucet Water Pressure</option>
+            <option value="unclean">🧹 Unclean Restroom / Odor</option>
+            <option value="sensor_dead">🔌 Touchless Sensor Not Responding</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#8B96A5;font-weight:700;">STALL OR FIXTURE (OPTIONAL)</label>
+          <input type="text" id="fb-stall" value="Stall 4 / FV-182" style="width:100%;padding:8px;background:#141A22;border:1px solid #202833;color:#fff;border-radius:6px;margin-top:4px;" />
+        </div>
+        <div>
+          <label style="font-size:11px;color:#8B96A5;font-weight:700;">PASSENGER COMMENT</label>
+          <textarea id="fb-comment" rows="2" style="width:100%;padding:8px;background:#141A22;border:1px solid #202833;color:#fff;border-radius:6px;margin-top:4px;">Water has been continuously running in stall 4 for over 15 minutes.</textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px;">
+          <button type="button" class="btn btn-ghost" id="btn-cancel-feedback">Cancel</button>
+          <button type="submit" class="btn btn-primary">📲 Submit &amp; Fuse Telemetry</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- Toast Stack -->
   <div class="toasts" id="toasts"></div>
+
 
 
   <!-- Standard Report Modal -->

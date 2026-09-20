@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>KOHLER FieldOps — Technician Mobile Console</title>
+  <style>
+    :root {
+      --bg: #080B10;
+      --panel: #10151C;
+      --panel-hover: #171E28;
+      --border: #202833;
+      --border-focus: #00A3E0;
+      --text: #F4F7FA;
+      --muted: #8B96A5;
+      --accent: #00A3E0;
+      --normal: #35D07F;
+      --warning: #F5B942;
+      --critical: #FF4D5A;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 60px; }
+    .mobile-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg); }
+    
+    /* App Bar */
+    .app-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(16, 21, 28, 0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border); padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; }
+    .brand-k { background: var(--accent); color: #fff; width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+    .online-badge { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--normal); font-weight: 600; }
+    .pulse-dot { width: 7px; height: 7px; background: var(--normal); border-radius: 50%; box-shadow: 0 0 8px var(--normal); animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+    /* Technician Selector Card */
+    .tech-card { padding: 14px 16px; background: var(--panel); border-bottom: 1px solid var(--border); }
+    .tech-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .tech-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+    .tech-select {
+      background: #141A22; border: 1px solid var(--border); color: var(--text);
+      padding: 6px 10px; border-radius: var(--radius); font-size: 13px; font-weight: 700; width: 100%;
+      outline: none;
+    }
+    .tech-select:focus { border-color: var(--accent); }
+
+    /* Quick KPI Row */
+    .kpi-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 16px; }
+    .kpi-box { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; text-align: center; }
+    .kpi-num { font-size: 20px; font-weight: 800; font-family: monospace; }
+    .kpi-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
+    /* Section Title */
+    .sec-title { padding: 8px 16px 4px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Work Order Cards */
+    .order-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .order-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; flex-direction: column; gap: 10px; position: relative;
+    }
+    .order-card.p1 { border-left: 4px solid var(--critical); }
+    .order-card.p2 { border-left: 4px solid var(--warning); }
+    .order-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .order-id { font-family: monospace; font-size: 12px; font-weight: 700; color: var(--accent); }
+    .priority-tag { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+    .priority-tag.p1 { background: rgba(255, 77, 90, 0.2); color: var(--critical); }
+    .priority-tag.p2 { background: rgba(245, 185, 66, 0.2); color: var(--warning); }
+    
+    .fixture-info { font-size: 15px; font-weight: 700; color: var(--text); }
+    .location-info { font-size: 12px; color: var(--muted); }
+    .root-cause-box { background: #141A22; border: 1px solid #1C2430; padding: 8px 10px; border-radius: 6px; font-size: 12px; }
+    .root-cause-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    .root-cause-val { font-weight: 700; color: #CBD5E1; margin-top: 2px; }
+
+    /* OEM Part Box */
+    .oem-part-box {
+      background: rgba(0, 163, 224, 0.08); border: 1px solid rgba(0, 163, 224, 0.3);
+      border-radius: 6px; padding: 8px 10px; font-size: 11px;
+    }
+    .oem-part-title { font-weight: 700; color: var(--accent); display: flex; justify-content: space-between; }
+    .oem-part-detail { color: #CBD5E1; margin-top: 2px; }
+    .oem-part-depot { color: var(--normal); font-weight: 600; margin-top: 4px; }
+
+    .sla-timer-bar { display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; }
+    
+    .btn-action {
+      background: var(--accent); color: #fff; border: none; border-radius: var(--radius);
+      padding: 10px; font-weight: 700; font-size: 13px; width: 100%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-action:active { opacity: 0.8; }
+    .btn-action:disabled { background: #1C2430; color: var(--muted); cursor: not-allowed; }
+
+    /* WhatsApp Dispatch Log */
+    .dispatch-msg {
+      background: #0E1A16; border: 1px solid #183328; border-radius: 8px;
+      padding: 10px 12px; font-size: 11px; color: #CBD5E1; line-height: 1.4;
+      margin-bottom: 8px; font-family: monospace;
+    }
+    .dispatch-meta { font-size: 10px; color: var(--normal); margin-bottom: 4px; font-weight: 700; }
+
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+      background: rgba(16, 21, 28, 0.98); border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 10px 0; z-index: 100;
+    }
+    .bnav-item { color: var(--muted); text-decoration: none; font-size: 11px; text-align: center; }
+    .bnav-item.active { color: var(--accent); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Top Bar -->
+    <header class="app-bar">
+      <div class="brand">
+        <div class="brand-k">K</div>
+        <span>AQUAGUARD <span>FIELDOPS</span></span>
+      </div>
+      <div class="online-badge">
+        <span class="pulse-dot"></span>
+        <span>CAD ONLINE</span>
+      </div>
+    </header>
+
+    <!-- Technician Selector -->
+    <section class="tech-card">
+      <div class="tech-header">
+        <span class="tech-label">ASSIGNED TECHNICIAN</span>
+        <span style="font-size:11px;color:var(--accent);" id="tech-zone">Terminal 2 & 3 Duty</span>
+      </div>
+      <select class="tech-select" id="tech-select">
+        <option value="Priya Sharma" selected>Priya Sharma (Sr. Plumbing)</option>
+        <option value="Arjun Patel">Arjun Patel (Field Tech)</option>
+        <option value="Ramesh K">Ramesh K (Master Mechanical)</option>
+      </select>
+    </section>
+
+    <!-- KPI Strip -->
+    <div class="kpi-strip">
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:var(--critical);" id="m-kpi-p1">0</div>
+        <div class="kpi-lbl">P1 Urgent</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:var(--warning);" id="m-kpi-open">0</div>
+        <div class="kpi-lbl">Open Tasks</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num" style="color:var(--normal);" id="m-kpi-sla">100%</div>
+        <div class="kpi-lbl">SLA Met</div>
+      </div>
+    </div>
+
+    <!-- Active Work Orders -->
+    <div class="sec-title">
+      <span>ASSIGNED WORK ORDERS</span>
+      <span style="color:var(--accent);" id="order-count">0 tasks</span>
+    </div>
+
+    <div class="order-list" id="orders-container">
+      <div style="text-align:center;color:var(--muted);padding:30px 10px;font-size:13px;">
+        Loading live dispatch stream...
+      </div>
+    </div>
+
+    <!-- Dispatch Feed -->
+    <div class="sec-title" style="margin-top:10px;">
+      <span>WHATSAPP CAD DISPATCH FEED</span>
+      <span style="font-size:10px;color:var(--normal);">LIVE WEBSOCKET</span>
+    </div>
+    <div style="padding: 8px 16px;" id="dispatch-feed-container">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <a href="#" class="bnav-item active">📋 Tasks</a>
+      <a href="/" class="bnav-item">🖥️ Full Twin</a>
+      <a href="/api/reports/executive/html" class="bnav-item">📄 Audit PDF</a>
+    </nav>
+  </div>
+
+  <script>
+    let state = null;
+    let currentTech = "Priya Sharma";
+
+    async function loadData() {
+      try {
+        const res = await fetch("/api/state");
+        state = await res.json();
+        renderMobileView();
+      } catch (e) {
+        console.error("Failed to load state", e);
+      }
+    }
+
+    async function loadDispatchFeed() {
+      try {
+        const res = await fetch("/api/notifications/dispatch-log");
+        const feed = await res.json();
+        const container = document.getElementById("dispatch-feed-container");
+        if (!container) return;
+        if (!feed.length) {
+          container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0;">No active dispatches in queue.</div>';
+          return;
+        }
+        container.innerHTML = feed.slice(0, 3).map(m => `
+          <div class="dispatch-msg">
+            <div class="dispatch-meta">📲 [${m.channel}] to ${m.technician} (${m.phone})</div>
+            <div>${m.message_body.replace(/\\n/g, '<br>')}</div>
+          </div>
+        `).join("");
+      } catch (e) {
+        console.error("Feed error", e);
+      }
+    }
+
+    function renderMobileView() {
+      if (!state) return;
+      const alerts = state.alerts || [];
+      const openAlerts = alerts.filter(a => a.status === "OPEN");
+      const p1Alerts = openAlerts.filter(a => a.priority === "P1");
+
+      document.getElementById("m-kpi-open").textContent = openAlerts.length;
+      document.getElementById("m-kpi-p1").textContent = p1Alerts.length;
+      document.getElementById("order-count").textContent = `${openAlerts.length} tasks`;
+
+      const container = document.getElementById("orders-container");
+      if (!openAlerts.length) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:40px 10px;background:var(--panel);border:1px solid var(--border);border-radius:10px;">
+            <div style="font-size:32px;margin-bottom:8px;">✅</div>
+            <div style="font-weight:700;font-size:15px;color:var(--normal);">All Systems Nominal</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">No open leak incidents assigned to your zone.</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = openAlerts.map(a => {
+        const isP1 = a.priority === "P1";
+        const rootCause = a.root_cause || "Flush Valve Diaphragm Tear";
+        const oemPart = (rootCause.includes("Solenoid")) ? "KOHLER-10673-SOL (24V Pulse Solenoid)" : "KOHLER-GP1138930 (Diaphragm Repair Kit)";
+        const depotShelf = (rootCause.includes("Solenoid")) ? "T2 Depot Rack B-08" : "T2 Depot Rack B-04";
+
+        return `
+          <div class="order-card ${isP1 ? 'p1' : 'p2'}">
+            <div class="order-top">
+              <span class="order-id">${a.alert_id}</span>
+              <span class="priority-tag ${isP1 ? 'p1' : 'p2'}">${a.priority} URGENT</span>
+            </div>
+            <div>
+              <div class="fixture-info">${a.device_id} &middot; Smart Valve</div>
+              <div class="location-info">${a.zone} &middot; Pune Airport</div>
+            </div>
+            <div class="root-cause-box">
+              <div class="root-cause-lbl">AI Root-Cause Diagnosis</div>
+              <div class="root-cause-val">${rootCause}</div>
+            </div>
+            <div class="oem-part-box">
+              <div class="oem-part-title">
+                <span>🔧 OEM SPARE REQUIRED</span>
+                <span>IN STOCK</span>
+              </div>
+              <div class="oem-part-detail">${oemPart}</div>
+              <div class="oem-part-depot">📍 Pick up at ${depotShelf}</div>
+            </div>
+            <div class="sla-timer-bar">
+              <span style="color:var(--muted);">SLA Countdown:</span>
+              <span style="color:${isP1 ? 'var(--critical)' : 'var(--warning)'};font-weight:700;">${Math.max(1, Math.round((a.sla_remaining_seconds || 600) / 60))}m remaining</span>
+            </div>
+            <button class="btn-action" onclick="executeRepair('${a.alert_id}')">
+              🔧 Execute Repair &amp; Verify
+            </button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function executeRepair(alertId) {
+      const btn = event.target;
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Stabilizing line &amp; verifying baseline...";
+      try {
+        const res = await fetch(`/alerts/${alertId}/resolve`, { method: "POST" });
+        const data = await res.json();
+        btn.style.background = "#35D07F";
+        btn.innerHTML = `✅ REPAIR VERIFIED: ${(data.monthly_liters_saved || 116640).toLocaleString()} L/mo saved!`;
+        setTimeout(() => {
+          loadData();
+          loadDispatchFeed();
+        }, 1200);
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = "❌ Verification Failed — Retry";
+      }
+    }
+
+    document.getElementById("tech-select").addEventListener("change", (e) => {
+      currentTech = e.target.value;
+      const zoneEl = document.getElementById("tech-zone");
+      if (currentTech === "Arjun Patel") zoneEl.textContent = "Terminal 1 & Arrivals Duty";
+      else if (currentTech === "Ramesh K") zoneEl.textContent = "Master Risers Duty";
+      else zoneEl.textContent = "Terminal 2 & 3 Duty";
+    });
+
+    loadData();
+    loadDispatchFeed();
+    setInterval(() => {
+      loadData();
+      loadDispatchFeed();
+    }, 3000);
+  </script>
+</body>
+</html>

@@ -53,6 +53,9 @@ function switchView(viewName) {
   if (viewName === "benchmarks" && !S.benchmarksData) {
     loadBenchmarks();
   }
+  if (viewName === "lifecycle") {
+    loadLifecycleData();
+  }
 
   // Refresh canvases if view changed
   if (S.state) {
@@ -60,6 +63,7 @@ function switchView(viewName) {
     if (viewName === "water_intel") drawIntelFlowChart(S.state.timeseries);
   }
 }
+
 
 $$("#main-nav .nav-tab").forEach(btn => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
@@ -536,9 +540,73 @@ function renderIncidentWorkspaceView(alertId) {
     <div class="fusion-factor-item"><span>Sensor Fidelity</span><b class="good-color">${Math.round((a.sensor_confidence || 0.96) * 100)}%</b></div>
   `;
 
+  // Genuine Kohler OEM Spares Requisition Card
+  const rootCause = a.root_cause || "Flush Valve Diaphragm Tear";
+
+  let oemPart = "KOHLER-GP1138930";
+  let oemName = "Diaphragm Assembly Repair Kit (Tripoint Flushometer)";
+  let oemCost = "₹1,850";
+  let oemDesc = "High-durability EPDM rubber diaphragm with integrated brass bypass filter orifice.";
+  let oemShelf = "T2 Depot Shelf Rack B-04";
+  let oemStock = "18 in stock";
+
+  if (rootCause.includes("Solenoid")) {
+    oemPart = "KOHLER-10673-SOL";
+    oemName = "24V DC Bi-Stable Pulse Solenoid Actuator";
+    oemCost = "₹3,450";
+    oemDesc = "Low-power latching solenoid with encapsulated magnetic core. Solves phantom cycling.";
+    oemShelf = "T2 Depot Shelf Rack B-08";
+    oemStock = "12 in stock";
+  } else if (rootCause.includes("Pressure") || rootCause.includes("Supply")) {
+    oemPart = "KOHLER-GP1044432";
+    oemName = "Dynamic Supply Pressure Regulator & Damper";
+    oemCost = "₹2,900";
+    oemDesc = "Cavitation-resistant brass cartridge regulator stabilizing water hammer.";
+    oemShelf = "Plumbing Bay P-02";
+    oemStock = "6 in stock";
+  }
+
+  const pnoEl = $("#ws-oem-partno");
+  if (pnoEl) pnoEl.textContent = oemPart;
+  const nameEl = $("#ws-oem-name");
+  if (nameEl) nameEl.textContent = oemName;
+  const costEl = $("#ws-oem-cost");
+  if (costEl) costEl.textContent = oemCost;
+  const descEl = $("#ws-oem-desc");
+  if (descEl) descEl.textContent = oemDesc;
+  const depotEl = $("#ws-oem-depot");
+  if (depotEl) depotEl.textContent = oemShelf;
+  const stockEl = $("#ws-oem-stock");
+  if (stockEl) stockEl.textContent = oemStock;
+
+  const reqBtn = $("#btn-ws-requisition");
+  if (reqBtn) {
+    reqBtn.onclick = async () => {
+      reqBtn.disabled = true;
+      reqBtn.textContent = "⏳ Reserving...";
+      try {
+        const res = await api.post("/api/spares/requisition", {
+          incident_id: a.id,
+          device_id: a.device_id,
+          part_number: oemPart,
+          quantity: 1,
+          technician: a.assigned_technician || "Priya Sharma",
+          urgency: a.priority + " Urgent"
+        });
+        toast(`📦 Requisition Created: <b>${res.requisition_id}</b> for ${oemPart} (Reserved at ${res.shelf_location})`, "good");
+        reqBtn.textContent = "✓ Requisitioned";
+      } catch (err) {
+        toast("Requisition failed", "bad");
+        reqBtn.disabled = false;
+        reqBtn.textContent = "📦 1-Click Requisition";
+      }
+    };
+  }
+
   // Dispatch & SLA
   const slaM = Math.max(0, Math.floor((a.sla_remaining_seconds ?? 900) / 60));
   $("#ws-sla-badge").textContent = `${a.sla_minutes || 15} min SLA`;
+
   $("#ws-tech").textContent = a.assigned_technician || ticket?.assigned_technician || "Arjun Sharma";
   $("#ws-cert").textContent = ticket?.technician_team || "Plumbing Specialist";
   $("#ws-eta").textContent = `${ticket?.eta_minutes || 8} min`;
@@ -1088,8 +1156,89 @@ function notifyNewIncidents(st) {
   });
 }
 
+/* ---------------- Asset Lifecycle Data Loader ---------------- */
+
+async function loadLifecycleData() {
+  try {
+    const preds = await api.get("/api/lifecycle/predictions");
+    const totalEl = $("#lc-total-assets");
+    if (totalEl) totalEl.textContent = preds.total_monitored_assets || 97;
+    const wearEl = $("#lc-avg-wear");
+    if (wearEl) wearEl.textContent = `${preds.average_fleet_wear_pct || 24.2}%`;
+    const watchEl = $("#lc-watch-count");
+    if (watchEl) watchEl.textContent = preds.assets_on_predictive_watch || 4;
+    const savEl = $("#lc-savings");
+    if (savEl) savEl.textContent = `₹${(preds.proactive_cost_savings_inr || 58000).toLocaleString()}`;
+
+    const tbody = $("#lifecycle-tbody");
+    if (tbody && preds.top_vulnerable_assets) {
+      tbody.innerHTML = preds.top_vulnerable_assets.map(a => {
+        const lastDay = a.trajectory_7d[a.trajectory_7d.length - 1];
+        const riskColor = lastDay.failure_risk_pct > 60 ? "var(--critical)" : "var(--warning)";
+        return `
+          <tr style="border-bottom:1px solid #18202A;">
+            <td style="padding:12px;font-family:monospace;font-weight:700;color:var(--accent);">${a.device_id}</td>
+            <td style="padding:12px;">${esc(a.terminal)} &middot; ${esc(a.zone)}</td>
+            <td style="padding:12px;text-transform:capitalize;">${esc(a.type).replace('_', ' ')}</td>
+            <td style="padding:12px;font-family:monospace;">${a.cycles_completed.toLocaleString()} / ${a.rated_cycles.toLocaleString()}</td>
+            <td style="padding:12px;font-family:monospace;font-weight:700;color:${a.cycle_wear_pct > 70 ? 'var(--warning)' : 'var(--text)'};">${a.cycle_wear_pct}%</td>
+            <td style="padding:12px;font-family:monospace;">${a.vibration_chatter_index} / 100</td>
+            <td style="padding:12px;font-family:monospace;font-weight:800;color:${riskColor};">${lastDay.failure_risk_pct}%</td>
+            <td style="padding:12px;font-size:12px;color:#CBD5E1;">${esc(a.recommended_action)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+  } catch (err) {
+    console.error("Lifecycle load error", err);
+  }
+}
+
+$("#btn-refresh-lifecycle")?.addEventListener("click", () => {
+  loadLifecycleData();
+  toast("↺ Asset lifecycle data refreshed", "info");
+});
+
+/* ---------------- Passenger QR Feedback Handlers ---------------- */
+$("#btn-open-feedback")?.addEventListener("click", () => {
+  $("#modal-feedback")?.showModal();
+});
+$("#btn-close-feedback")?.addEventListener("click", () => {
+  $("#modal-feedback")?.close();
+});
+$("#btn-cancel-feedback")?.addEventListener("click", () => {
+  $("#modal-feedback")?.close();
+});
+
+$("#form-passenger-feedback")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const restroom_id = $("#fb-restroom").value;
+  const issue_category = $("#fb-category").value;
+  const stall_number = $("#fb-stall").value;
+  const comment = $("#fb-comment").value;
+
+  try {
+    const res = await api.post("/api/feedback", {
+      restroom_id,
+      issue_category,
+      stall_number,
+      comment
+    });
+    $("#modal-feedback")?.close();
+    if (res.fusion_boost_applied) {
+      toast(`📲 <b>Multimodal Fusion Boost:</b> Traveler report matched ${res.matched_device}! Elevated leak confidence to <b>${Math.round(res.elevated_leak_confidence * 100)}%</b>`, "good");
+    } else {
+      toast(`📲 Passenger feedback logged for ${restroom_id}. Logged to maintenance queue.`, "info");
+    }
+    poll();
+  } catch (err) {
+    toast("Failed to submit feedback", "bad");
+  }
+});
+
 /* ---------------- Initial Boot ---------------- */
 initWebSocket();
+
 poll();
 setInterval(poll, 2500);
 
