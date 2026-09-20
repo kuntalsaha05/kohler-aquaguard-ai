@@ -3,125 +3,549 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>KOHLER AquaGuard AI — Smart Facility &amp; Sustainability Manager</title>
+<title>KOHLER AquaGuard AI — Facility Operations Command Center</title>
 <link rel="stylesheet" href="/ui/style.css" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark">K</div>
+
+  <!-- Top Enterprise Control Room Header -->
+  <header class="app-header">
+    <div class="brand-block">
+      <div class="brand-logo">K</div>
       <div>
-        <div class="brand-name">KOHLER AQUAGUARD <span class="ai-tag">AI</span></div>
-        <div class="brand-sub">Smart Facility &amp; Sustainability Manager</div>
+        <div class="brand-title">KOHLER AQUAGUARD <span class="badge-ai">AI</span></div>
+        <div class="brand-subtitle">Facility Intelligence Platform · Pune International Airport</div>
       </div>
     </div>
-    <div class="facility">
-      <div class="facility-name">Pune International Airport</div>
-      <div class="facility-meta"><span class="dot dot-green"></span> Operational · <span id="fleet-meta">—</span></div>
-    </div>
-    <div class="topbar-right">
-      <div class="live-badge"><span class="pulse"></span> LIVE SIMULATION <span id="sim-scale" class="muted">· 1 tick ≈ 1 min</span></div>
-      <div class="clock" id="clock">--:--:--</div>
+
+    <!-- Top Navigation Tabs -->
+    <nav class="nav-tabs" id="main-nav">
+      <button class="nav-tab active" data-view="command_center">Command Center</button>
+      <button class="nav-tab" data-view="water_intel">Water Intelligence</button>
+      <button class="nav-tab" data-view="sustainability">Sustainability</button>
+      <button class="nav-tab" data-view="ai_agent">AquaGuard AI</button>
+      <button class="nav-tab" data-view="benchmarks">Benchmarks</button>
+    </nav>
+
+    <!-- Header Right Controls -->
+    <div class="header-right">
+      <div class="live-indicator">
+        <span class="pulse-dot"></span>
+        <span class="live-text">LIVE</span>
+        <span class="telemetry-tick" id="telemetry-tick">0.8s ago</span>
+      </div>
+      <div class="header-clock" id="live-clock">--:--:--</div>
+      <button class="btn btn-scenario" id="btn-open-sim">⚡ Scenarios</button>
+      <button class="btn btn-guided-demo" id="btn-guided-demo">▶ Guided Demo</button>
     </div>
   </header>
 
-  <nav class="toolbar" id="toolbar">
-    <span class="toolbar-label">Scenario injection</span>
-    <button class="btn btn-danger" data-scenario="continuous-leak">💧 Continuous leak</button>
-    <button class="btn" data-scenario="phantom-flushes">🚽 Phantom flushes</button>
-    <button class="btn" data-scenario="device-degradation">📉 Device wear</button>
-    <button class="btn" data-scenario="pressure-anomaly">⚠️ Pressure drop</button>
-    <button class="btn" data-scenario="multiple-leaks">⚡ Multi-leak storm</button>
-    <button class="btn" data-scenario="sensor-failure">🔌 Sensor fault</button>
-    <button class="btn" data-scenario="occupancy-spike">👥 Occupancy surge</button>
-    <button class="btn btn-ghost" id="btn-stop">■ Stop</button>
-    <span class="spacer"></span>
-    <button class="btn btn-ghost" id="btn-benchmarks">📊 Research Benchmarks</button>
-    <button class="btn btn-ghost" id="btn-report">📄 Daily Report</button>
-    <button class="btn btn-primary" id="btn-demo">▶ Run guided demo</button>
-  </nav>
+  <!-- View 1: Command Center (Default Main Dashboard) -->
+  <main class="view-container active" id="view-command-center">
 
-  <section class="facility-overview-bar" id="overview-bar">
-    <div class="health-summary" id="health-summary"></div>
-    <div class="heatmap-summary" id="heatmap-summary"></div>
-  </section>
-
-  <section class="kpis" id="kpi-row"></section>
-
-  <main class="grid">
-    <section class="panel zones-panel">
-      <div class="panel-head">
-        <h2>Airport Digital Twin</h2>
-        <div class="twin-tabs" id="terminal-tabs">
-          <button class="tab-btn active" data-term="all">All</button>
-          <button class="tab-btn" data-term="Terminal 1">T1</button>
-          <button class="tab-btn" data-term="Terminal 2">T2</button>
-          <button class="tab-btn" data-term="Terminal 3">T3</button>
-          <button class="tab-btn" data-term="Arrivals">Arrivals</button>
+    <!-- High-Impact Facility Health & Scope Banner -->
+    <section class="facility-banner">
+      <div class="health-block">
+        <div class="health-label">FACILITY HEALTH</div>
+        <div class="health-gauge-val" id="banner-health-score">--</div>
+        <div class="health-status-badge" id="banner-health-status">CALIBRATING</div>
+      </div>
+      <div class="facility-stats-strip">
+        <div class="fstat-item">
+          <span class="fstat-num" id="fstat-devices">97</span>
+          <span class="fstat-lbl">Fixtures</span>
+        </div>
+        <div class="fstat-div"></div>
+        <div class="fstat-item">
+          <span class="fstat-num" id="fstat-zones">12</span>
+          <span class="fstat-lbl">Restrooms</span>
+        </div>
+        <div class="fstat-div"></div>
+        <div class="fstat-item">
+          <span class="fstat-num">4</span>
+          <span class="fstat-lbl">Terminals</span>
+        </div>
+        <div class="fstat-div"></div>
+        <div class="fstat-item">
+          <span class="fstat-num alert-color" id="fstat-incidents">0</span>
+          <span class="fstat-lbl">Active Incidents</span>
+        </div>
+        <div class="fstat-div"></div>
+        <div class="fstat-item">
+          <span class="fstat-num" id="fstat-water-today">0</span>
+          <span class="fstat-lbl">L Today Tracked</span>
+        </div>
+        <div class="fstat-div"></div>
+        <div class="fstat-item">
+          <span class="fstat-num good-color" id="fstat-saved-month">0</span>
+          <span class="fstat-lbl">L/mo Saved</span>
         </div>
       </div>
-      <div class="zones" id="zones"></div>
     </section>
 
-    <section class="panel mid-panel">
-      <div class="panel-head">
-        <h2>Facility Flow — Live</h2>
-        <span class="muted" id="flow-now"></span>
+    <!-- Main Spatial Twin (~60%) and Active Incidents Rail (~40%) -->
+    <section class="ops-split">
+
+      <!-- Centerpiece: Spatial Facility Digital Twin -->
+      <div class="panel spatial-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2>FACILITY DIGITAL TWIN</h2>
+            <div class="spatial-breadcrumb" id="spatial-breadcrumb">
+              <span class="bc-item" id="bc-root">Airport</span>
+            </div>
+          </div>
+          <div class="spatial-legend">
+            <span><i class="dot dot-normal"></i> Normal</span>
+            <span><i class="dot dot-warning"></i> Warning</span>
+            <span><i class="dot dot-critical"></i> Critical</span>
+          </div>
+        </div>
+
+        <!-- Terminal Spatial Grid (Level 1 & Level 2) -->
+        <div class="spatial-viewport" id="spatial-viewport">
+          <!-- Dynamically populated by app.js: Terminals with spatial Restroom pods -->
+        </div>
+
+        <!-- Bottom Twin Context Bar -->
+        <div class="twin-footer">
+          <div class="flow-mini-stat">
+            <span class="muted">Facility Flow:</span>
+            <strong id="twin-facility-flow">-- L/min</strong>
+          </div>
+          <div class="zoom-help-hint muted">Click any restroom pod to zoom into fixture telemetry</div>
+        </div>
       </div>
-      <canvas id="flow-chart" height="150"></canvas>
-      <div class="panel-head sub">
-        <h2>Incident Feed &amp; Lifecycle</h2>
-        <span class="muted" id="alert-count"></span>
-      </div>
-      <div class="alerts" id="alerts-list"></div>
+
+      <!-- Right-Side Rail: Active Incidents -->
+      <aside class="panel incidents-rail">
+        <div class="panel-header">
+          <h2>ACTIVE INCIDENTS</h2>
+          <span class="incidents-badge" id="rail-incident-count">00</span>
+        </div>
+        <div class="incidents-list" id="rail-incidents-list">
+          <!-- Dynamically populated incident cards -->
+        </div>
+      </aside>
     </section>
 
-    <section class="panel chat-panel">
-      <div class="panel-head">
-        <h2>AI Command Center</h2>
-        <span class="muted">Grounded ReAct Agent</span>
+    <!-- Bottom Strip: Live Facility Flow Graph & Quick Operations Summary -->
+    <section class="bottom-ops-strip">
+      <div class="panel flow-strip-panel">
+        <div class="panel-header">
+          <h3>FACILITY FLOW OVER TIME</h3>
+          <span class="muted" id="flow-graph-sub">Live telemetry buffer (last 90 ticks)</span>
+        </div>
+        <canvas id="main-flow-canvas" height="110"></canvas>
       </div>
-      <div class="tool-trail" id="tool-trail" style="display:none;"></div>
-      <div class="chat-log" id="chat-log"></div>
-      <div class="chips">
-        <button class="chip" data-q="Where are we wasting the most water today?">Most water wasted?</button>
-        <button class="chip" data-q="What should I fix first?">Fix first?</button>
-        <button class="chip" data-q="Why is FV-182 critical?">Why FV-182?</button>
-        <button class="chip" data-q="Explain facility health hierarchy">Facility Health</button>
-        <button class="chip" data-q="Show water waste heatmap">Waste Heatmap</button>
-        <button class="chip" data-q="Show research benchmarks">Benchmarks</button>
-        <button class="chip" data-q="Generate daily facility report">Daily Report</button>
+
+      <div class="panel activity-strip-panel">
+        <div class="panel-header">
+          <h3>OPERATIONS &amp; DISPATCH SUMMARY</h3>
+        </div>
+        <div class="activity-stats-grid">
+          <div class="act-stat">
+            <div class="act-lbl">Open Tickets</div>
+            <div class="act-val" id="act-tickets">0</div>
+          </div>
+          <div class="act-stat">
+            <div class="act-lbl">Resolved (Today)</div>
+            <div class="act-val good-color" id="act-resolved">0</div>
+          </div>
+          <div class="act-stat">
+            <div class="act-lbl">SLA Compliance</div>
+            <div class="act-val" id="act-sla">96.4%</div>
+          </div>
+          <div class="act-stat">
+            <div class="act-lbl">Avg MTTR</div>
+            <div class="act-val" id="act-mttr">0m</div>
+          </div>
+        </div>
       </div>
-      <form class="chat-input" id="chat-form">
-        <input id="chat-input" type="text" placeholder="Ask AquaGuard AI…" autocomplete="off" />
-        <button class="btn btn-primary" type="submit">Send</button>
-      </form>
     </section>
   </main>
 
-  <section class="lower-grid">
-    <section class="panel">
-      <div class="panel-head"><h2>Maintenance Tickets</h2><span class="muted" id="ticket-count"></span></div>
-      <div class="tickets" id="tickets-list"></div>
-    </section>
-    <section class="panel">
-      <div class="panel-head"><h2>Predictive Maintenance — Devices at Risk</h2><span class="muted">next 7 days</span></div>
-      <div class="risk" id="risk-list"></div>
-    </section>
-    <section class="panel">
-      <div class="panel-head"><h2>Sustainability Impact</h2><span class="muted">this month</span></div>
-      <div class="sustain" id="sustainability"></div>
-    </section>
-  </section>
+  <!-- View 2: Dedicated Incident Workspace -->
+  <main class="view-container" id="view-incident-workspace">
+    <div class="workspace-header">
+      <button class="btn btn-ghost" id="btn-back-to-facility">← Back to Facility</button>
+      <div class="incident-hero-title">
+        <span class="badge-priority" id="ws-prio">P1</span>
+        <h1 id="ws-title">INCIDENT WORKSPACE</h1>
+        <span class="badge-kind" id="ws-kind">CONTINUOUS LEAK</span>
+      </div>
+      <div class="ws-location-sub" id="ws-location">Terminal 2 · Restroom 14 · FV-182</div>
+    </div>
 
-  <footer class="foot">
-    <span>Detect → Diagnose → Prioritize → Dispatch → Conserve</span>
-    <span class="muted">KOHLER AquaGuard AI · Track 2 prototype · deterministic reasoning core over simulated digital twin</span>
-  </footer>
+    <div class="workspace-grid">
+      <!-- Left Column: Live Telemetry, Telemetry Sparkline, Water Loss Impact -->
+      <div class="ws-col">
+        <div class="panel">
+          <div class="panel-header"><h3>LIVE FIXTURE TELEMETRY</h3></div>
+          <div class="ws-telemetry-grid">
+            <div class="stat-box"><div class="stat-lbl">Flow Rate</div><div class="stat-val alert-color" id="ws-flow">-- L/min</div></div>
+            <div class="stat-box"><div class="stat-lbl">Occupancy</div><div class="stat-val" id="ws-occ">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Flush Count</div><div class="stat-val" id="ws-flush">0</div></div>
+            <div class="stat-box"><div class="stat-lbl">Pressure</div><div class="stat-val" id="ws-pressure">-- bar</div></div>
+            <div class="stat-box"><div class="stat-lbl">Sensor Fidelity</div><div class="stat-val good-color" id="ws-sensor-conf">--%</div></div>
+            <div class="stat-box"><div class="stat-lbl">Fixture Health</div><div class="stat-val" id="ws-health">--/100</div></div>
+          </div>
 
-  <dialog id="modal"><div id="modal-content"></div></dialog>
+          <div class="ws-chart-block">
+            <div class="panel-header sub"><h4>Flow Rate Over Time (Incident Window)</h4></div>
+            <canvas id="ws-flow-canvas" height="130"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>WATER IMPACT ESTIMATION</h3></div>
+          <div class="ws-loss-metrics">
+            <div class="loss-metric">
+              <span class="loss-num alert-color" id="ws-daily-loss">0 L</span>
+              <span class="loss-lbl">Per Day If Unresolved</span>
+            </div>
+            <div class="loss-metric">
+              <span class="loss-num alert-color" id="ws-monthly-loss">0 L</span>
+              <span class="loss-lbl">Per Month If Unresolved</span>
+            </div>
+          </div>
+          <div class="ws-loss-bar-container">
+            <div class="ws-loss-bar" id="ws-loss-bar" style="width: 85%;"></div>
+          </div>
+          <div class="ws-loss-cost muted" id="ws-cost-loss">Cost impact: INR 0 / month (Commercial Tariff @ ₹48.50/kL)</div>
+        </div>
+      </div>
+
+      <!-- Right Column: AI Sensor Fusion, Root Cause, Dispatch, and Closed-Loop Verification -->
+      <div class="ws-col">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>AI SENSOR FUSION DIAGNOSIS</h3>
+            <span class="badge-confidence" id="ws-fusion-confidence">97% Confidence</span>
+          </div>
+          <div class="ws-root-cause-box">
+            <div class="root-cause-lbl">Attributed Root Cause:</div>
+            <div class="root-cause-val" id="ws-root-cause">Flush Valve Diaphragm Tear</div>
+          </div>
+          <div class="fusion-factors-list" id="ws-fusion-factors">
+            <!-- 6 factors breakdown -->
+          </div>
+          <div class="ws-ai-narrative" id="ws-diagnosis-text">--</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h3>DISPATCH &amp; SLA MANAGEMENT</h3>
+            <span class="sla-badge" id="ws-sla-badge">15 min SLA</span>
+          </div>
+          <div class="ws-dispatch-card">
+            <div class="dispatch-row"><span>Assigned Specialist:</span><strong id="ws-tech">Arjun Sharma</strong></div>
+            <div class="dispatch-row"><span>Certification:</span><span id="ws-cert">Plumbing</span></div>
+            <div class="dispatch-row"><span>Estimated Arrival:</span><strong id="ws-eta">8 min</strong></div>
+            <div class="dispatch-row"><span>SLA Remaining:</span><strong class="alert-color" id="ws-sla-countdown">11 min</strong></div>
+            <div class="dispatch-rationale" id="ws-dispatch-rationale">Auto-assigned closest plumbing specialist in Terminal 2.</div>
+          </div>
+
+          <!-- Closed-Loop Verification Section -->
+          <div class="verification-box" id="ws-verification-box">
+            <div class="verification-status-idle" id="ws-verif-idle">
+              <button class="btn btn-primary btn-large" id="ws-btn-resolve">✓ Perform Service &amp; Verify Resolution</button>
+            </div>
+            <div class="verification-in-progress" id="ws-verif-running" style="display:none;">
+              <div class="spinner"></div>
+              <div class="verif-step-text" id="ws-verif-step">Verifying flow reduction to baseline...</div>
+            </div>
+            <div class="verification-complete" id="ws-verif-done" style="display:none;">
+              <div class="good-color check-mark">✓ VERIFIED RESOLVED</div>
+              <div class="verif-note" id="ws-verif-note">Fixture repaired. Telemetry normalized. Conserved 116,640 L/month.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- View 3: Water Intelligence -->
+  <main class="view-container" id="view-water-intel">
+    <div class="view-header">
+      <h2>WATER INTELLIGENCE</h2>
+      <span class="muted">Facility-Wide Consumption, Diurnal Baselines &amp; Loss Heatmaps</span>
+    </div>
+
+    <section class="intel-hero-grid">
+      <div class="panel">
+        <div class="panel-header"><h3>TOTAL CONSUMPTION (TODAY)</h3></div>
+        <div class="intel-hero-num" id="intel-total-flow">482,340 <small>Liters</small></div>
+        <div class="intel-hero-sub good-color">↓ 8.4% vs baseline nominal demand</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3>CURRENT ACTIVE WASTAGE</h3></div>
+        <div class="intel-hero-num alert-color" id="intel-open-loss">0 <small>L/day</small></div>
+        <div class="intel-hero-sub muted">Derived from open unresolved leaks</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3>MONTHLY PROJECTED SAVINGS</h3></div>
+        <div class="intel-hero-num good-color" id="intel-saved-month">0 <small>Liters</small></div>
+        <div class="intel-hero-sub muted" id="intel-cost-saved">INR 0 in tariff costs avoided</div>
+      </div>
+    </section>
+
+    <!-- Large 24-Hour Diurnal Curve -->
+    <section class="panel chart-panel-large">
+      <div class="panel-header">
+        <h3>WATER CONSUMPTION — SIMULATED RUNNING TIMELINE</h3>
+        <span class="muted">Live consumption telemetry overlaid with baseline</span>
+      </div>
+      <canvas id="intel-timeline-canvas" height="220"></canvas>
+    </section>
+
+    <!-- Terminal Breakdown Heatmap -->
+    <section class="panel">
+      <div class="panel-header">
+        <h3>WATER-LOSS SOURCES BY AIRPORT TERMINAL</h3>
+        <span class="muted">Terminal loss distribution across facility</span>
+      </div>
+      <div class="terminal-heatmap-list" id="intel-terminal-bars">
+        <!-- Dynamically rendered terminal loss bars -->
+      </div>
+    </section>
+  </main>
+
+  <!-- View 4: Sustainability & Impact -->
+  <main class="view-container" id="view-sustainability">
+    <div class="view-header">
+      <h2>SUSTAINABILITY &amp; ESG IMPACT</h2>
+      <span class="muted">Verified Resource Conservation &amp; Utility Ledger</span>
+    </div>
+
+    <section class="sustain-hero-card">
+      <div class="sustain-hero-inner">
+        <div class="sustain-hero-label">VERIFIED WATER SAVED THIS MONTH</div>
+        <div class="sustain-hero-val" id="sustain-hero-val">0</div>
+        <div class="sustain-hero-unit">LITERS OF WATER CONSERVED</div>
+        <div class="sustain-hero-divider"></div>
+        <div class="sustain-hero-meta">
+          <span class="good-color">12.4% reduction</span> vs unmanaged airport baseline · <span id="sustain-hero-cost">INR 0</span> commercial tariff avoided
+        </div>
+      </div>
+    </section>
+
+    <section class="sustain-metrics-grid">
+      <div class="panel">
+        <div class="panel-header"><h3>HOUSEHOLD EQUIVALENCY</h3></div>
+        <div class="sustain-stat-num" id="sustain-households">0</div>
+        <div class="muted">Household-days of drinking water (at 150 L/day avg)</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3>CARBON &amp; PUMPING ENERGY</h3></div>
+        <div class="sustain-stat-num" id="sustain-energy">0 kWh</div>
+        <div class="muted">Grid energy saved by avoiding municipal booster pumping</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3>CLOSED-LOOP RESOLUTION EFFICIENCY</h3></div>
+        <div class="sustain-stat-num good-color" id="sustain-efficiency">96.4%</div>
+        <div class="muted">Incidents verified back to zero-leak baseline</div>
+      </div>
+    </section>
+
+    <!-- Verified Audit Ledger -->
+    <section class="panel">
+      <div class="panel-header">
+        <h3>VERIFIED CONSERVATION AUDIT LEDGER</h3>
+        <span class="muted">Immutable log of closed incidents and accredited savings</span>
+      </div>
+      <div class="audit-ledger-list" id="sustain-ledger-list">
+        <!-- Rendered verified tickets -->
+      </div>
+    </section>
+  </main>
+
+  <!-- View 5: AquaGuard AI Agent (Command Center) -->
+  <main class="view-container" id="view-ai-agent">
+    <div class="ai-workspace-split">
+
+      <!-- Left Column: Agent Chat Interface -->
+      <div class="panel ai-chat-column">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2>AQUAGUARD AI ASSISTANT</h2>
+            <span class="muted">Grounded Deterministic ReAct Reasoning Core</span>
+          </div>
+          <button class="btn btn-ghost btn-mini" id="btn-clear-chat">Clear</button>
+        </div>
+
+        <!-- Suggestion Cards (Visible when chat empty or as quick prompts) -->
+        <div class="ai-prompt-cards" id="ai-prompt-cards">
+          <div class="ai-prompt-card" data-prompt="Where are we wasting the most water today?">
+            <div class="prompt-title">Where are we wasting the most water?</div>
+            <div class="prompt-desc">Identify terminal loss hotspots and top leaking fixtures</div>
+          </div>
+          <div class="ai-prompt-card" data-prompt="What should I fix first?">
+            <div class="prompt-title">What should I fix first?</div>
+            <div class="prompt-desc">Prioritized technician dispatch based on severity &amp; SLA</div>
+          </div>
+          <div class="ai-prompt-card" data-prompt="Explain facility health hierarchy">
+            <div class="prompt-title">Explain facility health hierarchy</div>
+            <div class="prompt-desc">5-factor breakdown of leak, reliability, sensors, SLA, hygiene</div>
+          </div>
+          <div class="ai-prompt-card" data-prompt="Show research benchmarks">
+            <div class="prompt-title">Show empirical model benchmarks</div>
+            <div class="prompt-desc">F1 scores, precision, recall, and detection latencies</div>
+          </div>
+        </div>
+
+        <div class="ai-tool-execution-trail" id="ai-tool-trail" style="display:none;"></div>
+        <div class="ai-chat-history" id="ai-chat-history"></div>
+
+        <form class="ai-input-bar" id="ai-chat-form">
+          <input type="text" id="ai-query-input" placeholder="Ask AquaGuard AI about leaks, health, predictions, or dispatch…" autocomplete="off" />
+          <button type="submit" class="btn btn-primary">Analyze</button>
+        </form>
+      </div>
+
+      <!-- Right Column: Live Context Panel -->
+      <aside class="panel ai-context-column">
+        <div class="panel-header">
+          <h3>ANALYSIS CONTEXT</h3>
+          <span class="badge-tag">Digital Twin</span>
+        </div>
+
+        <div class="ai-context-content">
+          <div class="ctx-section">
+            <div class="ctx-lbl">TELEMETRY GROUNDING</div>
+            <div class="ctx-val" id="ctx-grounding">97 Fixtures · 12 Restrooms · Live Stream Active</div>
+          </div>
+
+          <div class="ctx-section">
+            <div class="ctx-lbl">ACTIVE INCIDENTS SCOPE</div>
+            <div class="ctx-val" id="ctx-incidents">0 open incidents tracked in memory</div>
+          </div>
+
+          <div class="ctx-section">
+            <div class="ctx-lbl">FAILURES AT 7-DAY RISK</div>
+            <div class="ctx-val" id="ctx-risk-devices">0 fixtures flagged by RandomForest wear model</div>
+          </div>
+
+          <div class="ctx-section">
+            <div class="ctx-lbl">AVAILABLE TOOLS (REACT LOOP)</div>
+            <div class="ctx-tools-tags">
+              <span class="tool-tag">get_open_incidents</span>
+              <span class="tool-tag">get_device_detail</span>
+              <span class="tool-tag">get_sensor_fusion_breakdown</span>
+              <span class="tool-tag">get_facility_health_hierarchy</span>
+              <span class="tool-tag">get_water_waste_heatmap</span>
+              <span class="tool-tag">get_model_evaluation_metrics</span>
+              <span class="tool-tag">simulate_inaction</span>
+              <span class="tool-tag">generate_facility_report</span>
+            </div>
+          </div>
+
+          <div class="ctx-section">
+            <div class="ctx-lbl">QUICK AGENT ACTIONS</div>
+            <div class="ai-action-buttons">
+              <button class="btn btn-ghost btn-mini" id="btn-agent-report">📄 Generate Daily Report</button>
+              <button class="btn btn-ghost btn-mini" id="btn-agent-heatmap">🗺️ Terminal Heatmap</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- View 6: Research Benchmarks -->
+  <main class="view-container" id="view-benchmarks">
+    <div class="view-header">
+      <h2>RESEARCH &amp; MODEL EVALUATION BENCHMARKS</h2>
+      <span class="muted" id="bench-version-tag">v1.2.0-research</span>
+    </div>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h3>DETECTION &amp; DISCRIMINATION PERFORMANCE</h3>
+        <span class="muted" id="bench-dataset-tag">Pune Airport 97 Fixtures Digital Twin</span>
+      </div>
+      <table class="ops-table" id="benchmarks-table">
+        <thead>
+          <tr>
+            <th>Model / Detection Layer</th>
+            <th>F1-Score</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>FPR</th>
+            <th>Latency / Lead</th>
+            <th>Samples</th>
+          </tr>
+        </thead>
+        <tbody id="benchmarks-tbody">
+          <!-- Populated by app.js -->
+        </tbody>
+      </table>
+    </section>
+
+    <section class="bottom-ops-strip" style="margin-top:14px;">
+      <div class="panel">
+        <div class="panel-header"><h3>OPERATIONAL LATENCIES</h3></div>
+        <div class="activity-stats-grid">
+          <div class="act-stat"><div class="act-lbl">Telemetry Ingestion</div><div class="act-val">1.4 ms</div></div>
+          <div class="act-stat"><div class="act-lbl">Sensor Fusion</div><div class="act-val">3.8 ms</div></div>
+          <div class="act-stat"><div class="act-lbl">Ticket Dispatch</div><div class="act-val">8.2 ms</div></div>
+          <div class="act-stat"><div class="act-lbl">Closed-Loop Verification</div><div class="act-val good-color">2.0 s</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><h3>SUSTAINABILITY QUANTIFICATION</h3></div>
+        <div class="activity-stats-grid">
+          <div class="act-stat"><div class="act-lbl">Volume Error</div><div class="act-val">±1.8%</div></div>
+          <div class="act-stat"><div class="act-lbl">Tariff Variance</div><div class="act-val good-color">0.0%</div></div>
+          <div class="act-stat"><div class="act-lbl">FPR (Nominal Stress)</div><div class="act-val good-color">&lt; 1.0%</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Simulation Control Modal -->
+  <dialog class="enterprise-dialog" id="modal-simulation">
+    <div class="dialog-header">
+      <h3>DIGITAL TWIN SIMULATION CONTROL</h3>
+      <button class="dialog-close" id="btn-close-sim">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <div class="sim-status-row">
+        <span>Simulation Engine Status:</span>
+        <strong class="good-color">● ACTIVE (1 tick ≈ 1 min)</strong>
+      </div>
+
+      <div class="sim-scenarios-section">
+        <h4>INJECT OPERATIONAL SCENARIO</h4>
+        <div class="scenario-buttons-grid">
+          <button class="btn btn-scenario-opt" data-scenario="continuous-leak">💧 Continuous Valve Leak</button>
+          <button class="btn btn-scenario-opt" data-scenario="phantom-flushes">🚽 Solenoid Phantom Flushes</button>
+          <button class="btn btn-scenario-opt" data-scenario="device-degradation">📉 Predictive Valve Wear</button>
+          <button class="btn btn-scenario-opt" data-scenario="pressure-anomaly">⚠️ Supply Pressure Drop</button>
+          <button class="btn btn-scenario-opt" data-scenario="multiple-leaks">⚡ Multi-Leak Storm</button>
+          <button class="btn btn-scenario-opt" data-scenario="sensor-failure">🔌 Sensor Telemetry Fault</button>
+          <button class="btn btn-scenario-opt" data-scenario="occupancy-spike">👥 Terminal Occupancy Surge</button>
+        </div>
+      </div>
+
+      <div class="sim-actions-footer">
+        <button class="btn btn-danger" id="btn-sim-stop">■ Stop Active Scenarios</button>
+        <button class="btn btn-ghost" id="btn-sim-reset">↺ Reset Fleet Telemetry</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast Stack -->
   <div class="toasts" id="toasts"></div>
+
+  <!-- Standard Report Modal -->
+  <dialog id="modal-report"><div id="modal-report-content"></div></dialog>
 
   <script src="/ui/app.js"></script>
 </body>
