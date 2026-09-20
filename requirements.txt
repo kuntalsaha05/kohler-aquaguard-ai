@@ -4,3 +4,4 @@ numpy
 scikit-learn
 websockets>=13.0
 paho-mqtt>=2.0.0
+reportlab>=4.0.0
