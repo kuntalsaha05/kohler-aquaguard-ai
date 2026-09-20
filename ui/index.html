@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KOHLER AquaGuard AI — Smart Facility &amp; Sustainability Manager</title>
+<link rel="stylesheet" href="/ui/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">K</div>
+      <div>
+        <div class="brand-name">KOHLER AQUAGUARD <span class="ai-tag">AI</span></div>
+        <div class="brand-sub">Smart Facility &amp; Sustainability Manager</div>
+      </div>
+    </div>
+    <div class="facility">
+      <div class="facility-name">Pune International Airport</div>
+      <div class="facility-meta"><span class="dot dot-green"></span> Operational · <span id="fleet-meta">—</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><span class="pulse"></span> LIVE SIMULATION <span id="sim-scale" class="muted">· 1 tick ≈ 1 min</span></div>
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </header>
+
+  <nav class="toolbar" id="toolbar">
+    <span class="toolbar-label">Scenario injection</span>
+    <button class="btn btn-danger" data-scenario="continuous-leak">💧 Continuous leak</button>
+    <button class="btn" data-scenario="phantom-flushes">🚽 Phantom flushes</button>
+    <button class="btn" data-scenario="device-degradation">📉 Device degradation</button>
+    <button class="btn" data-scenario="sensor-failure">🔌 Sensor failure</button>
+    <button class="btn" data-scenario="occupancy-spike">👥 Occupancy spike</button>
+    <button class="btn btn-ghost" id="btn-stop">■ Stop scenarios</button>
+    <span class="spacer"></span>
+    <button class="btn btn-primary" id="btn-demo">▶ Run guided demo</button>
+  </nav>
+
+  <section class="kpis" id="kpi-row"></section>
+
+  <main class="grid">
+    <section class="panel zones-panel">
+      <div class="panel-head">
+        <h2>Facility Map</h2>
+        <div class="legend">
+          <span><i class="dot dot-green"></i>Normal</span>
+          <span><i class="dot dot-amber"></i>Warning</span>
+          <span><i class="dot dot-red"></i>Critical</span>
+        </div>
+      </div>
+      <div class="zones" id="zones"></div>
+    </section>
+
+    <section class="panel mid-panel">
+      <div class="panel-head">
+        <h2>Facility Flow — Live</h2>
+        <span class="muted" id="flow-now"></span>
+      </div>
+      <canvas id="flow-chart" height="150"></canvas>
+      <div class="panel-head sub">
+        <h2>Incident Feed</h2>
+        <span class="muted" id="alert-count"></span>
+      </div>
+      <div class="alerts" id="alerts-list"></div>
+    </section>
+
+    <section class="panel chat-panel">
+      <div class="panel-head">
+        <h2>AI Command Center</h2>
+        <span class="muted">grounded on live telemetry</span>
+      </div>
+      <div class="chat-log" id="chat-log"></div>
+      <div class="chips">
+        <button class="chip" data-q="Where are we wasting the most water today?">Most water wasted?</button>
+        <button class="chip" data-q="What should I fix first?">Fix first?</button>
+        <button class="chip" data-q="How is hygiene compliance?">Hygiene?</button>
+        <button class="chip" data-q="Which devices are at risk of failure?">Devices at risk?</button>
+        <button class="chip" data-q="What is our sustainability impact?">Savings?</button>
+      </div>
+      <form class="chat-input" id="chat-form">
+        <input id="chat-input" type="text" placeholder="Ask AquaGuard AI…" autocomplete="off" />
+        <button class="btn btn-primary" type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+
+  <section class="lower-grid">
+    <section class="panel">
+      <div class="panel-head"><h2>Maintenance Tickets</h2><span class="muted" id="ticket-count"></span></div>
+      <div class="tickets" id="tickets-list"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Predictive Maintenance — Devices at Risk</h2><span class="muted">next 7 days</span></div>
+      <div class="risk" id="risk-list"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>Sustainability Impact</h2><span class="muted">this month</span></div>
+      <div class="sustain" id="sustainability"></div>
+    </section>
+  </section>
+
+  <footer class="foot">
+    <span>Detect → Diagnose → Prioritize → Dispatch → Conserve</span>
+    <span class="muted">KOHLER AquaGuard AI · Track 2 prototype · deterministic reasoning core over simulated digital twin</span>
+  </footer>
+
+  <dialog id="modal"><div id="modal-content"></div></dialog>
+  <div class="toasts" id="toasts"></div>
+
+  <script src="/ui/app.js"></script>
+</body>
+</html>

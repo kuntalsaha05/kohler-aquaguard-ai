@@ -1,265 +1,255 @@
+"""KOHLER AquaGuard AI — Smart Facility & Sustainability Manager API.
+
+Run:  uvicorn app.main:app --reload   (from project root)
+UI:   http://127.0.0.1:8000/
+Docs: http://127.0.0.1:8000/docs
+"""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Dict, List, Literal, Optional
-from uuid import uuid4
+import asyncio
+import os
+from contextlib import asynccontextmanager
+from typing import List, Optional
 
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from . import ai, engine, sim, views
+from .state import (
+    SIM_INTERVAL_SECONDS,
+    Store,
+    TelemetryEvent,
+    STORE,
+    utcnow,
+)
+
+UI_DIR = os.path.join(os.path.dirname(__file__), "..", "ui")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if not STORE.load():
+        sim.build_fleet(STORE)
+    else:
+        sim.build_fleet(STORE)  # ensure fleet matches current blueprint
+    task = asyncio.create_task(_simulation_loop())
+    yield
+    task.cancel()
+    STORE.save()
+
+
+async def _simulation_loop() -> None:
+    while True:
+        try:
+            engine._expire_external_writers(STORE)
+            events = sim.generate_tick(STORE)
+            engine.process_events(STORE, events)
+            if STORE.dirty and STORE.tick_count % 15 == 0:
+                STORE.save()
+        except Exception as exc:  # keep the twin alive no matter what
+            print(f"[sim] tick error: {exc!r}")
+        await asyncio.sleep(SIM_INTERVAL_SECONDS)
 
 
 app = FastAPI(
     title="KOHLER AquaGuard AI",
-    description="Smart Facility & Sustainability Manager API",
-    version="0.1.0",
+    description="Smart Facility & Sustainability Manager — detect, diagnose, prioritize, dispatch, conserve.",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-
-class TelemetryEvent(BaseModel):
-    device_id: str
-    zone: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    flow_lpm: float = Field(ge=0)
-    occupancy: int = Field(ge=0, default=0)
-    flush_count: int = Field(ge=0, default=0)
-    expected_flow_lpm: float = Field(ge=0, default=0)
-    duration_min: int = Field(ge=1, default=1)
-    temperature_c: Optional[float] = None
-    sensor_errors: int = Field(ge=0, default=0)
-
-
-class Alert(BaseModel):
-    id: str
-    device_id: str
-    zone: str
-    issue: str
-    severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
-    estimated_loss_liters: float
-    estimated_daily_loss_liters: float
-    estimated_monthly_loss_liters: float
-    diagnosis: str
-    recommended_action: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    status: Literal["OPEN", "RESOLVED"] = "OPEN"
-
-
-class MaintenanceTicket(BaseModel):
-    ticket_id: str
-    category: str
-    asset: str
-    location: str
-    issue: str
-    severity: str
-    estimated_water_loss_daily_liters: float
-    action: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-
-class DeviceHealth(BaseModel):
-    device_id: str
-    health_score: int
-    anomaly_frequency: int
-    flow_variance_pct: float
-    flush_irregularity: int
-    sensor_errors: int
-    predicted_risk_next_7_days: Literal["LOW", "MEDIUM", "HIGH"]
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+)
 
 
 class AIQuery(BaseModel):
     query: str
 
 
-DEVICES = [
-    {"device_id": "FV-182", "type": "Flush Valve", "zone": "Terminal 2 — Restroom 14"},
-    {"device_id": "T-204", "type": "Toilet", "zone": "Terminal 1 — Restroom 03"},
-    {"device_id": "F-330", "type": "Faucet", "zone": "Terminal 2 — Gate A"},
-]
-telemetry_store: List[TelemetryEvent] = []
-alerts_store: List[Alert] = []
-tickets_store: List[MaintenanceTicket] = []
-health_store: Dict[str, DeviceHealth] = {}
+# ------------------------------------------------------------------ UI
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(os.path.join(UI_DIR, "index.html"))
 
 
-def _severity_from_daily_loss(daily_loss: float) -> Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]:
-    if daily_loss >= 2500:
-        return "CRITICAL"
-    if daily_loss >= 1000:
-        return "HIGH"
-    if daily_loss >= 250:
-        return "MEDIUM"
-    return "LOW"
+app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
 
 
-def _diagnosis(event: TelemetryEvent, issue: str) -> str:
-    if issue == "continuous_leak":
-        return (
-            f"{event.device_id} has continuous flow ({event.flow_lpm:.2f} L/min) for "
-            f"{event.duration_min} minutes with occupancy {event.occupancy} and flush count "
-            f"{event.flush_count}. This pattern suggests a likely valve/flush mechanism failure."
-        )
-    return (
-        f"{event.device_id} telemetry indicates elevated anomaly behavior; inspect flow control and sensor health."
-    )
+# -------------------------------------------------------------- realtime
+
+@app.get("/api/state")
+def get_state() -> dict:
+    return views.facility_snapshot(STORE)
 
 
-def _build_health(event: TelemetryEvent) -> DeviceHealth:
-    flow_variance_pct = round(max(0.0, (event.flow_lpm - event.expected_flow_lpm) * 45.0), 2)
-    anomaly_frequency = 1 if event.flow_lpm > event.expected_flow_lpm else 0
-    flush_irregularity = 1 if event.occupancy == 0 and event.flush_count > 0 else 0
-    penalty = int(flow_variance_pct / 4) + (event.sensor_errors * 6) + (anomaly_frequency * 8)
-    health_score = max(0, min(100, 100 - penalty))
-    if health_score <= 40:
-        risk = "HIGH"
-    elif health_score <= 70:
-        risk = "MEDIUM"
-    else:
-        risk = "LOW"
-    return DeviceHealth(
-        device_id=event.device_id,
-        health_score=health_score,
-        anomaly_frequency=anomaly_frequency,
-        flow_variance_pct=flow_variance_pct,
-        flush_irregularity=flush_irregularity,
-        sensor_errors=event.sensor_errors,
-        predicted_risk_next_7_days=risk,
-    )
+@app.get("/api/timeseries")
+def get_timeseries() -> dict:
+    return {"points": list(STORE.timeseries)}
 
 
-def _process_event(event: TelemetryEvent) -> Optional[Alert]:
-    telemetry_store.append(event)
-    health_store[event.device_id] = _build_health(event)
+# ------------------------------------------------------------- telemetry
 
-    leak_condition = (
-        event.flow_lpm > event.expected_flow_lpm
-        and event.occupancy == 0
-        and event.flush_count == 0
-        and event.duration_min >= 5
-    )
-    if not leak_condition:
-        return None
+@app.post("/telemetry")
+def ingest_telemetry(events: List[TelemetryEvent]) -> dict:
+    """External telemetry ingestion — same pipeline, external writer priority.
 
-    estimated_loss = round(event.flow_lpm * event.duration_min, 2)
-    estimated_daily_loss = round(event.flow_lpm * 60 * 24, 2)
-    estimated_monthly_loss = round(estimated_daily_loss * 30, 2)
-    severity = _severity_from_daily_loss(estimated_daily_loss)
-    diagnosis = _diagnosis(event, "continuous_leak")
-    alert = Alert(
-        id=f"ALT-{uuid4().hex[:8].upper()}",
-        device_id=event.device_id,
-        zone=event.zone,
-        issue="Continuous water flow detected",
-        severity=severity,
-        estimated_loss_liters=estimated_loss,
-        estimated_daily_loss_liters=estimated_daily_loss,
-        estimated_monthly_loss_liters=estimated_monthly_loss,
-        diagnosis=diagnosis,
-        recommended_action="Dispatch plumbing maintenance immediately.",
-    )
-    alerts_store.append(alert)
-
-    if severity in {"HIGH", "CRITICAL"}:
-        tickets_store.append(
-            MaintenanceTicket(
-                ticket_id=f"KHL-{uuid4().hex[:5].upper()}",
-                category="Plumbing / Water Waste",
-                asset=event.device_id,
-                location=event.zone,
-                issue=alert.issue,
-                severity=alert.severity,
-                estimated_water_loss_daily_liters=alert.estimated_daily_loss_liters,
-                action="Inspect flush valve and inlet mechanism.",
-            )
-        )
-    return alert
+    External events claim their devices' writer slots (the simulator pauses
+    those devices) and detection runs immediately; after 5 ticks of silence
+    the simulator resumes ownership. Sustained posting reaches the 5-tick
+    leak threshold in ~10 seconds of wall clock.
+    """
+    result = engine.process_events(STORE, events, external=True)
+    return {
+        "processed": len(events),
+        "alerts_created": len(result["new_alerts"]),
+        "tickets_created": len(result["new_tickets"]),
+        "alerts": [a.model_dump(mode="json") for a in result["new_alerts"]],
+        "tickets": [t.model_dump(mode="json") for t in result["new_tickets"]],
+    }
 
 
 @app.get("/devices")
-def get_devices() -> Dict[str, List[dict]]:
-    return {"devices": DEVICES}
+def get_devices() -> dict:
+    return {"devices": [
+        {
+            "device_id": d.device_id, "type": d.type, "zone": d.zone,
+            "terminal": d.terminal, "floor": d.floor,
+            "flow_lpm": round(d.flow_lpm, 2), "occupancy": d.occupancy,
+            "health_score": d.health_score, "risk": d.risk,
+        }
+        for d in STORE.devices.values()
+    ]}
 
 
-@app.post("/telemetry")
-def ingest_telemetry(events: List[TelemetryEvent]) -> Dict[str, object]:
-    created_alerts: List[Alert] = []
-    for event in events:
-        alert = _process_event(event)
-        if alert:
-            created_alerts.append(alert)
-    return {
-        "processed": len(events),
-        "alerts_created": len(created_alerts),
-        "alerts": created_alerts,
-    }
-
+# ----------------------------------------------------------------- incidents
 
 @app.get("/alerts")
-def get_alerts(status: Optional[Literal["OPEN", "RESOLVED"]] = None) -> Dict[str, List[Alert]]:
+def get_alerts(status: Optional[str] = None) -> dict:
+    alerts = STORE.alerts
     if status:
-        return {"alerts": [a for a in alerts_store if a.status == status]}
-    return {"alerts": alerts_store}
+        alerts = [a for a in alerts if a.status == status.upper()]
+    return {"alerts": [a.model_dump(mode="json") for a in reversed(alerts[-60:])]}
 
 
-@app.get("/predictions")
-def get_predictions() -> Dict[str, List[DeviceHealth]]:
-    return {"device_health": list(health_store.values())}
+@app.post("/alerts/{alert_id}/resolve")
+def resolve_alert(alert_id: str) -> dict:
+    alert = engine.resolve_alert(STORE, alert_id)
+    if not alert:
+        raise HTTPException(404, "Open alert not found")
+    return {"resolved": alert.id,
+            "resolution_note": alert.resolution_note,
+            "saved_month_liters": round(STORE.saved_month_liters, 1)}
 
 
 @app.get("/tickets")
-def get_tickets() -> Dict[str, List[MaintenanceTicket]]:
-    return {"tickets": tickets_store}
+def get_tickets() -> dict:
+    return {"tickets": [t.model_dump(mode="json") for t in reversed(STORE.tickets[-40:])]}
 
+
+@app.post("/tickets/{ticket_id}/resolve")
+def resolve_ticket(ticket_id: str) -> dict:
+    ticket = engine.resolve_ticket(STORE, ticket_id)
+    if not ticket:
+        raise HTTPException(404, "Open ticket not found")
+    return {"resolved": ticket.ticket_id,
+            "linked_alert_resolved": True,
+            "saved_month_liters": round(STORE.saved_month_liters, 1)}
+
+
+@app.post("/zones/{zone_id}/cleaned")
+def zone_cleaned(zone_id: str) -> dict:
+    event = engine.record_cleaning(STORE, zone_id)
+    if not event:
+        raise HTTPException(404, "Zone not found")
+    return {"cleaning_recorded": event}
+
+
+@app.get("/predictions")
+def get_predictions() -> dict:
+    risky = sorted(STORE.devices.values(), key=lambda d: d.health_score)[:30]
+    return {"device_health": [
+        {
+            "device_id": d.device_id, "type": d.type, "zone": d.zone,
+            "health_score": d.health_score, "risk": d.risk,
+            "failure_probability_7d": d.failure_probability,
+            "flow_variance_pct": round(d.flow_variance_pct, 1),
+            "anomaly_frequency": d.anomaly_frequency,
+            "flush_irregularity": d.flush_irregularity,
+            "sensor_errors": d.sensor_errors,
+        } for d in risky
+    ]}
+
+
+# ------------------------------------------------------------- analytics
 
 @app.get("/analytics")
-def get_analytics() -> Dict[str, object]:
-    total_water = round(sum(e.flow_lpm * e.duration_min for e in telemetry_store), 2)
-    wasted = round(sum(a.estimated_loss_liters for a in alerts_store if a.status == "OPEN"), 2)
-    saved = round(sum(a.estimated_monthly_loss_liters for a in alerts_store if a.status == "RESOLVED"), 2)
+def get_analytics() -> dict:
+    snap = views.facility_snapshot(STORE)
+    kpis = snap["kpis"]
     return {
         "kpis": {
-            "water_consumption_liters": total_water,
-            "active_alerts": len([a for a in alerts_store if a.status == "OPEN"]),
-            "devices_at_risk": len([h for h in health_store.values() if h.predicted_risk_next_7_days == "HIGH"]),
-            "estimated_monthly_water_saved_liters": saved,
-            "estimated_current_wastage_liters": wasted,
-        }
+            "water_consumption_liters": kpis["water_consumption_liters"],
+            "active_alerts": kpis["active_alerts"],
+            "devices_at_risk": kpis["devices_at_risk"],
+            "estimated_monthly_water_saved_liters": kpis["water_saved_month_liters"],
+            "estimated_current_wastage_liters": kpis["current_wastage_liters"],
+            "incidents_resolved": kpis["incidents_resolved"],
+            "mttr_minutes": kpis["mttr_minutes"],
+        },
+        "sustainability": {
+            "saved_month_liters": kpis["water_saved_month_liters"],
+            "household_days_equivalent": round(kpis["water_saved_month_liters"] / 150.0, 1),
+            "open_wastage_liters": kpis["current_wastage_liters"],
+            "avg_device_health": kpis["avg_device_health"],
+        },
     }
 
 
+# ------------------------------------------------------------------- AI
+
 @app.post("/ai")
-def ai_command_center(body: AIQuery) -> Dict[str, str]:
-    q = body.query.lower()
-    if not alerts_store:
-        return {"response": "No active incidents detected. Facility telemetry is currently within expected ranges."}
-
-    top_alert = max(alerts_store, key=lambda a: a.estimated_daily_loss_liters)
-    if "wasting" in q or "waste" in q:
-        return {
-            "response": (
-                f"{top_alert.zone} currently has the highest abnormal consumption via {top_alert.device_id}, "
-                f"estimated at {top_alert.estimated_daily_loss_liters:.0f} L/day."
-            )
-        }
-    if "fix first" in q or "priority" in q:
-        return {
-            "response": (
-                f"Prioritize {top_alert.device_id} in {top_alert.zone}. Severity is {top_alert.severity} with "
-                f"estimated loss {top_alert.estimated_daily_loss_liters:.0f} L/day."
-            )
-        }
-    return {"response": f"Top incident: {top_alert.device_id} at {top_alert.zone}. {top_alert.diagnosis}"}
+def ai_command_center(body: AIQuery) -> dict:
+    answer = ai.command_center_answer(STORE, body.query)
+    return {"response": answer, "engine": "deterministic reasoning over live telemetry",
+            "ts": utcnow().isoformat()}
 
 
-@app.post("/simulate/continuous-leak")
-def simulate_continuous_leak() -> Dict[str, object]:
-    event = TelemetryEvent(
-        device_id="FV-182",
-        zone="Terminal 2 — Restroom 14",
-        flow_lpm=2.7,
-        expected_flow_lpm=0,
-        duration_min=18,
-        occupancy=0,
-        flush_count=0,
-        sensor_errors=0,
-    )
-    alert = _process_event(event)
-    return {"scenario": "continuous_leak", "event": event, "alert": alert}
+# ------------------------------------------------------------- simulation
+# NOTE: static paths must be declared before the dynamic /simulate/{scenario}
+# route, or FastAPI matches "stop"/"reset" as a scenario name.
+
+@app.post("/simulate/stop")
+def stop_scenarios() -> dict:
+    sim.stop_all_scenarios(STORE)
+    STORE.hold_writers.clear()
+    STORE.dirty = True
+    return {"stopped": True, "active_scenarios": 0}
+
+
+@app.post("/simulate/reset")
+def reset_simulation() -> dict:
+    sim.stop_all_scenarios(STORE)
+    STORE.reset()
+    sim.seed_hygiene_counters(STORE)
+    STORE.save()
+    return {"reset": True}
+
+
+@app.post("/simulate/{scenario}")
+def inject_scenario(scenario: str, device_id: Optional[str] = None) -> dict:
+    try:
+        result = sim.start_scenario(STORE, scenario, device_id)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    STORE.dirty = True
+    return {"injected": True, "sim_minutes": STORE.tick_count, **result}
+
+
+@app.get("/healthz")
+def healthz() -> JSONResponse:
+    return JSONResponse({"ok": True, "sim_minutes": STORE.tick_count})
