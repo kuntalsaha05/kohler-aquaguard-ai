@@ -13,7 +13,7 @@
 <br/>
 
 [![Live Demo](https://img.shields.io/badge/🌐%20Live%20Dashboard-http%3A%2F%2F127.0.0.1%3A8000-00A3E0?style=for-the-badge)](http://127.0.0.1:8000/)
-[![Video Demo](https://img.shields.io/badge/🎬%20Video%20Demonstration-video%2Fdemo--link.md-FF0000?style=for-the-badge)](video/demo-link.md)
+[![Video Demo](https://img.shields.io/badge/🎬%20Video%20Demonstration-Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing)
 [![Presentation Deck](https://img.shields.io/badge/📑%20Presentation%20Deck%20(4%20Slides)-presentation%2FKOHLER__AquaGuard__AI.pdf-9333EA?style=for-the-badge)](presentation/KOHLER_AquaGuard_AI.pdf)
 [![Prompts PDF](https://img.shields.io/badge/🧠%20Prompts%20Doc%20(10%20Pages)-docs%2FKOHLER__AquaGuard__Prompts.pdf-10B981?style=for-the-badge)](docs/KOHLER_AquaGuard_Prompts.pdf)
 [![Evaluation](https://img.shields.io/badge/📊%20Evaluation%20Report-docs%2Fevaluation.md-F59E0B?style=for-the-badge)](docs/evaluation.md)
@@ -60,7 +60,7 @@ It transforms conventional commercial washrooms into an autonomous, closed-loop 
 | **1. Working Model** | Complete standalone FastAPI application + Industrial Command Center UI | [`app/`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/app) & [`ui/`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/ui) |
 | **2. Prompts Documentation** | 10-Page comprehensive PDF of all AI prompts, system instructions, and workflows | [`docs/KOHLER_AquaGuard_Prompts.pdf`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/docs/KOHLER_AquaGuard_Prompts.pdf) |
 | **3. Presentation Deck** | 4-Slide Executive Pitch Deck in widescreen format | [`presentation/KOHLER_AquaGuard_AI.pdf`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/presentation/KOHLER_AquaGuard_AI.pdf) |
-| **4. Video Demonstration** | 2-minute 30-second walkthrough script with timecodes and video link | [`video/demo-link.md`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/video/demo-link.md) |
+| **4. Video Demonstration** | Official demonstration video with 2m30s walkthrough script and timecodes | [**Watch on Google Drive**](https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing) &middot; [`video/demo-link.md`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/video/demo-link.md) |
 | **5. Empirical Evaluation** | 2,500 sample benchmark evidence, confusion matrix, latencies, and ablation study | [`docs/evaluation.md`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/docs/evaluation.md) |
 
 ---

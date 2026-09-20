@@ -255,7 +255,7 @@ def generate_deck():
     # SLIDE 3: Live Demo & Innovation Pack
     # =========================================================================
     story.append(Paragraph("Live Demonstration &amp; Technical Innovations", slide_title))
-    story.append(Paragraph("Autonomous closed-loop incident lifecycle verified on Pune Airport Terminal 2", slide_sub))
+    story.append(Paragraph("Autonomous closed-loop incident lifecycle verified on Pune Airport Terminal 2  ·  <b>Video:</b> <font color='#0077B6'><u>https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing</u></font>", slide_sub))
     story.append(Spacer(1, 10))
 
     d1 = [

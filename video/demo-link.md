@@ -1,9 +1,9 @@
 # KOHLER AquaGuard AI — Video Demonstration
 
-[![KOHLER AquaGuard AI Video Demonstration](https://img.shields.io/badge/Video%20Demo-YouTube%20%7C%20Loom-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/placeholder-kohler-aquaguard-ai)
+[![KOHLER AquaGuard AI Video Demonstration](https://img.shields.io/badge/Video%20Demo-Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing)
 
-> **Video Link:** [https://youtu.be/placeholder-kohler-aquaguard-ai](https://youtu.be/placeholder-kohler-aquaguard-ai)  
-> *(Direct raw screen recording and presentation video submitted for KOHLER-MITWPU Track 2 evaluation)*
+> **Official Video Demonstration Link:** [https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing](https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing)  
+> *(Official high-definition demonstration video submitted for KOHLER-MITWPU Track 2 evaluation)*
 
 ---
 
