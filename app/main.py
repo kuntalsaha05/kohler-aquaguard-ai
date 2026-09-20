@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ai, engine, sim, views
+from . import ai, benchmarks, engine, sim, views
 from .state import (
     SIM_INTERVAL_SECONDS,
     Store,
@@ -90,6 +90,26 @@ def get_state() -> dict:
 @app.get("/api/timeseries")
 def get_timeseries() -> dict:
     return {"points": list(STORE.timeseries)}
+
+
+@app.get("/api/incidents")
+def get_incidents() -> dict:
+    return {"incidents": [i.model_dump(mode="json") for i in reversed(STORE.incidents[-50:])]}
+
+
+@app.get("/api/facility-health")
+def get_facility_health() -> dict:
+    return views.facility_health_hierarchy(STORE)
+
+
+@app.get("/api/heatmap")
+def get_heatmap() -> dict:
+    return {"heatmap": views.water_waste_heatmap(STORE)}
+
+
+@app.get("/api/evaluation")
+def get_evaluation() -> dict:
+    return benchmarks.get_evaluation_metrics()
 
 
 # ------------------------------------------------------------- telemetry

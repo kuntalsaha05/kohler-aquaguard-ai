@@ -21,9 +21,15 @@ import statistics
 from typing import Dict, List, Optional, Tuple
 
 from . import ai
+from .fusion import (
+    compute_sensor_fusion_confidence,
+    evaluate_sensor_diagnostics,
+    get_contextual_baseline_flow,
+)
 from .ml import compute_anomaly_score, FAILURE_MODEL
 from .state import (
     Alert,
+    IncidentIntelligence,
     LITERS_PER_FLUSH,
     MaintenanceTicket,
     Store,
@@ -91,6 +97,45 @@ def severity_from_daily_loss(daily_loss: float) -> str:
 
 # ------------------------------------------------------------ event intake
 
+def _advance_sla_timers(store: Store) -> None:
+    """Advance countdown timers for active alerts, tickets, and canonical incidents."""
+    for alert in store.alerts:
+        if alert.status == "OPEN":
+            alert.sla_remaining_seconds = max(0, alert.sla_remaining_seconds - 60)
+            if alert.sla_remaining_seconds <= 300:
+                alert.sla_breach_risk = "CRITICAL"
+            elif alert.sla_remaining_seconds <= 600:
+                alert.sla_breach_risk = "HIGH"
+            elif alert.sla_remaining_seconds <= 1200:
+                alert.sla_breach_risk = "MEDIUM"
+            else:
+                alert.sla_breach_risk = "LOW"
+
+    for ticket in store.tickets:
+        if ticket.status == "OPEN":
+            ticket.sla_remaining_seconds = max(0, ticket.sla_remaining_seconds - 60)
+            if ticket.sla_remaining_seconds <= 300:
+                ticket.sla_breach_risk = "CRITICAL"
+            elif ticket.sla_remaining_seconds <= 600:
+                ticket.sla_breach_risk = "HIGH"
+            elif ticket.sla_remaining_seconds <= 1200:
+                ticket.sla_breach_risk = "MEDIUM"
+            else:
+                ticket.sla_breach_risk = "LOW"
+
+    for inc in store.incidents:
+        if inc.status == "OPEN":
+            inc.sla_remaining_seconds = max(0, inc.sla_remaining_seconds - 60)
+            if inc.sla_remaining_seconds <= 300:
+                inc.sla_breach_risk = "CRITICAL"
+            elif inc.sla_remaining_seconds <= 600:
+                inc.sla_breach_risk = "HIGH"
+            elif inc.sla_remaining_seconds <= 1200:
+                inc.sla_breach_risk = "MEDIUM"
+            else:
+                inc.sla_breach_risk = "LOW"
+
+
 def process_events(store: Store, events: List[TelemetryEvent], external: bool = False) -> dict:
     """Run the full detection pipeline over one batch of telemetry.
 
@@ -101,6 +146,8 @@ def process_events(store: Store, events: List[TelemetryEvent], external: bool = 
     new_alerts: List[Alert] = []
     updated_alerts: List[Alert] = []
     new_tickets: List[MaintenanceTicket] = []
+
+    _advance_sla_timers(store)
 
     if external:
         touched = {ev.device_id for ev in events if ev.device_id in store.devices}
@@ -376,6 +423,44 @@ def _upsert_alert(store: Store, dev, kind: str, issue: str, loss_so_far: float,
 
     if existing:
         changed = False
+        if not existing.before_state:
+            existing.before_state = {
+                "flow_lpm": round(dev.flow_lpm, 2),
+                "pressure_bar": round(getattr(dev, "pressure_bar", 3.0), 2),
+                "anomaly_score": getattr(dev, "anomaly_score", 80),
+                "leak_confidence": getattr(existing, "leak_confidence", 0.95),
+            }
+            changed = True
+        inc = next((i for i in store.incidents if i.incident_id == f"INC-{existing.id}" or (i.device_id == existing.device_id and i.status == "OPEN")), None)
+        if not inc:
+            inc = IncidentIntelligence(
+                incident_id=f"INC-{existing.id}",
+                device_id=dev.device_id,
+                device_type=dev.type,
+                zone=dev.zone,
+                terminal=dev.terminal,
+                kind=kind,
+                severity=existing.severity,
+                priority=existing.priority,
+                leak_confidence=existing.leak_confidence,
+                sensor_confidence=existing.sensor_confidence,
+                root_cause=existing.root_cause,
+                root_cause_confidence=existing.root_cause_confidence,
+                estimated_loss_lpd=existing.estimated_daily_loss_liters,
+                estimated_monthly_loss_liters=existing.estimated_monthly_loss_liters,
+                sla_minutes=existing.sla_minutes,
+                sla_remaining_seconds=existing.sla_remaining_seconds,
+                sla_breach_risk=existing.sla_breach_risk,
+                assigned_technician=existing.assigned_technician or "Arjun Sharma (Plumbing)",
+                recommended_action=existing.recommended_action,
+                status="OPEN",
+                before_state=existing.before_state,
+                after_state=None,
+                timeline=list(existing.timeline),
+                created_at=existing.created_at,
+            )
+            store.incidents.append(inc)
+
         if daily_loss != existing.estimated_daily_loss_liters:
             existing.estimated_daily_loss_liters = daily_loss
             existing.estimated_monthly_loss_liters = round(daily_loss * 30, 1)
@@ -406,6 +491,37 @@ def _upsert_alert(store: Store, dev, kind: str, issue: str, loss_so_far: float,
     composed = ai.compose_diagnosis(kind, facts)
     anom_score = getattr(dev, "anomaly_score", 80)
     anom_band = getattr(dev, "anomaly_band", "CRITICAL")
+    recent_window = list(dev.history)[-10:]
+
+    diag = evaluate_sensor_diagnostics(
+        flow_lpm=dev.flow_lpm,
+        occupancy=dev.occupancy,
+        flush_count=dev.flush_count,
+        sensor_errors=dev.sensor_errors,
+        battery_pct=dev.battery_pct,
+        history_window=recent_window,
+    )
+    sensor_conf = diag["overall_telemetry_confidence"]
+
+    now = utcnow()
+    baseline = get_contextual_baseline_flow(dev.zone, dev.terminal, now.hour)
+
+    fusion = compute_sensor_fusion_confidence(
+        flow_lpm=dev.flow_lpm,
+        expected_baseline_lpm=baseline,
+        occupancy=dev.occupancy,
+        flush_count=dev.flush_count,
+        duration_min=dev.duration_min,
+        flow_variance_pct=dev.flow_variance_pct,
+        pressure_bar=getattr(dev, "pressure_bar", 3.0),
+        sensor_confidence=sensor_conf,
+        history_flows=[h["flow"] for h in recent_window],
+    )
+    leak_conf = round(fusion["leak_confidence_pct"] / 100.0, 2)
+    root_cause = fusion["root_cause"]
+    root_cause_conf = fusion["root_cause_confidence"]
+    sla_min = 15 if priority == "P1" else (45 if priority == "P2" else (90 if priority == "P3" else 180))
+
     alert = Alert(
         id=_next_alert_id(store),
         device_id=dev.device_id, device_type=dev.type, zone=dev.zone,
@@ -419,12 +535,54 @@ def _upsert_alert(store: Store, dev, kind: str, issue: str, loss_so_far: float,
         telemetry=telemetry_snapshot,
         anomaly_score=anom_score,
         anomaly_band=anom_band,
+        leak_confidence=leak_conf,
+        sensor_confidence=sensor_conf,
+        root_cause=root_cause,
+        root_cause_confidence=root_cause_conf,
+        sla_minutes=sla_min,
+        sla_remaining_seconds=sla_min * 60,
+        sla_breach_risk="LOW",
+        before_state={
+            "flow_lpm": round(dev.flow_lpm, 2),
+            "pressure_bar": round(getattr(dev, "pressure_bar", 3.0), 2),
+            "anomaly_score": anom_score,
+            "leak_confidence": leak_conf,
+        },
         timeline=[
-            {"time": utcnow().strftime("%H:%M UTC"), "event": "ANOMALY_CONFIRMED", "note": f"Triggered {kind} ({issue})"}
+            {"time": now.strftime("%H:%M UTC"), "event": "ANOMALY_CONFIRMED", "note": f"Triggered {kind} ({issue})"}
         ],
     )
     store.alerts.append(alert)
     ticket = _dispatch_ticket(store, alert)
+
+    # Canonical Incident record
+    incident = IncidentIntelligence(
+        incident_id=f"INC-{alert.id}",
+        device_id=dev.device_id,
+        device_type=dev.type,
+        zone=dev.zone,
+        terminal=dev.terminal,
+        kind=kind,
+        severity=severity,
+        priority=priority,
+        leak_confidence=leak_conf,
+        sensor_confidence=sensor_conf,
+        root_cause=root_cause,
+        root_cause_confidence=root_cause_conf,
+        estimated_loss_lpd=round(daily_loss, 1),
+        estimated_monthly_loss_liters=round(daily_loss * 30, 1),
+        sla_minutes=sla_min,
+        sla_remaining_seconds=sla_min * 60,
+        sla_breach_risk="LOW",
+        assigned_technician=ticket.assigned_technician if ticket and ticket.assigned_technician else "Arjun Sharma (Plumbing)",
+        recommended_action=composed["recommended_action"],
+        status="OPEN",
+        before_state=alert.before_state,
+        after_state=None,
+        timeline=list(alert.timeline),
+        created_at=alert.created_at,
+    )
+    store.incidents.append(incident)
     return alert, ticket, None
 
 
@@ -470,13 +628,13 @@ def _dispatch_ticket(store: Store, alert: Alert) -> Optional[MaintenanceTicket]:
         "phantom_flush": ("Plumbing / Flush Mechanism",
                           "Inspect solenoid and flush sensor calibration; reset valve actuator."),
         "sensor_fault": ("Instrumentation / IoT",
-                         "Replace sensor node, verify wiring and recalibrate."),
+                          "Replace sensor node, verify wiring and recalibrate."),
         "hygiene": ("Housekeeping",
                     "Deploy cleaning crew; deep-clean fixtures and restock consumables."),
         "predictive": ("Predictive Maintenance",
-                       "Schedule preventive inspection within 72 hours; check seals and actuator wear."),
+                        "Schedule preventive inspection within 72 hours; check seals and actuator wear."),
         "pressure_anomaly": ("Mechanical & Supply",
-                             "Inspect main line isolation valve and check booster pump regulator."),
+                              "Inspect main line isolation valve and check booster pump regulator."),
     }
     if alert.kind not in rules:
         return None
@@ -506,6 +664,8 @@ def _dispatch_ticket(store: Store, alert: Alert) -> Optional[MaintenanceTicket]:
         assigned_technician=opt["technician"],
         technician_team=opt["team"],
         sla_deadline_minutes=opt["sla_deadline_minutes"],
+        sla_remaining_seconds=opt["sla_deadline_minutes"] * 60,
+        sla_breach_risk="LOW",
         eta_minutes=opt["eta_minutes"],
         dispatch_rationale=opt["rationale"],
         timeline=[
@@ -575,6 +735,24 @@ def resolve_alert(store: Store, alert_id: str) -> Optional[Alert]:
         "event": "VERIFIED_RESOLUTION",
         "note": f"Repair verified. Conserved {alert.estimated_monthly_loss_liters:,.0f} L/month.",
     })
+    dev = store.devices.get(alert.device_id)
+    alert.after_state = {
+        "flow_lpm": dev.flow_lpm if dev else 0.0,
+        "pressure_bar": round(getattr(dev, "pressure_bar", 3.0), 2) if dev else 3.0,
+        "anomaly_score": 0,
+        "leak_confidence": 0.02,
+        "verified_savings_monthly_l": alert.estimated_monthly_loss_liters,
+    }
+    for inc in store.incidents:
+        if inc.incident_id == f"INC-{alert.id}" or (inc.device_id == alert.device_id and inc.status == "OPEN"):
+            inc.status = "RESOLVED"
+            inc.resolved_at = alert.resolved_at
+            inc.after_state = alert.after_state
+            inc.timeline.append({
+                "time": alert.resolved_at.strftime("%H:%M UTC"),
+                "event": "VERIFIED_RESOLUTION",
+                "note": alert.resolution_note,
+            })
     if alert.kind in ("continuous_leak", "phantom_flush"):
         store.saved_month_liters += alert.estimated_monthly_loss_liters
     store.resolved_count += 1

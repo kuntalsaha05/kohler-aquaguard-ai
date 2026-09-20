@@ -47,6 +47,34 @@ class TelemetryEvent(BaseModel):
     battery_pct: float = Field(ge=0, le=100, default=100.0)
 
 
+class IncidentIntelligence(BaseModel):
+    incident_id: str
+    device_id: str
+    device_type: str
+    zone: str
+    terminal: str
+    kind: str
+    severity: Severity
+    priority: Priority
+    leak_confidence: float = 0.95
+    sensor_confidence: float = 0.96
+    root_cause: str = "Flush Valve Diaphragm Tear"
+    root_cause_confidence: float = 0.94
+    estimated_loss_lpd: float = 0.0
+    estimated_monthly_loss_liters: float = 0.0
+    sla_minutes: int = 15
+    sla_remaining_seconds: int = 900
+    sla_breach_risk: str = "LOW"
+    assigned_technician: str = "Arjun Sharma (Plumbing)"
+    recommended_action: str = ""
+    status: Literal["OPEN", "RESOLVED"] = "OPEN"
+    before_state: Dict[str, Any] = {}
+    after_state: Optional[Dict[str, Any]] = None
+    timeline: List[Dict[str, Any]] = []
+    created_at: datetime = Field(default_factory=utcnow)
+    resolved_at: Optional[datetime] = None
+
+
 class Alert(BaseModel):
     id: str
     device_id: str
@@ -65,8 +93,16 @@ class Alert(BaseModel):
     status: Literal["OPEN", "RESOLVED"] = "OPEN"
     anomaly_score: int = 0
     anomaly_band: str = "NORMAL"
+    leak_confidence: float = 0.95
+    sensor_confidence: float = 0.96
+    root_cause: str = "Flush Valve Diaphragm Tear"
+    root_cause_confidence: float = 0.94
     assigned_technician: Optional[str] = None
     sla_minutes: int = 60
+    sla_remaining_seconds: int = 3600
+    sla_breach_risk: str = "LOW"
+    before_state: Dict[str, Any] = {}
+    after_state: Optional[Dict[str, Any]] = None
     timeline: List[Dict[str, Any]] = []
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
@@ -89,6 +125,8 @@ class MaintenanceTicket(BaseModel):
     assigned_technician: Optional[str] = None
     technician_team: Optional[str] = None
     sla_deadline_minutes: int = 60
+    sla_remaining_seconds: int = 3600
+    sla_breach_risk: str = "LOW"
     eta_minutes: int = 15
     dispatch_rationale: Optional[str] = None
     timeline: List[Dict[str, Any]] = []
@@ -219,6 +257,7 @@ class Store:
         self.zones: Dict[str, ZoneState] = {}
         self.alerts: List[Alert] = []
         self.tickets: List[MaintenanceTicket] = []
+        self.incidents: List[IncidentIntelligence] = []
         self.telemetry: deque = deque(maxlen=4000)
         self.timeseries: deque = deque(maxlen=180)
         self.scenarios: Dict[str, dict] = {}  # kind -> {device_id, started_tick, meta}
@@ -244,6 +283,7 @@ class Store:
             "zones": {k: v.to_dict() for k, v in self.zones.items()},
             "alerts": [a.model_dump(mode="json") for a in self.alerts],
             "tickets": [t.model_dump(mode="json") for t in self.tickets],
+            "incidents": [i.model_dump(mode="json") for i in self.incidents],
             "scenarios": self.scenarios,
             "cleaning_events": self.cleaning_events,
             "ticket_seq": self.ticket_seq,
@@ -272,6 +312,37 @@ class Store:
         self.zones = {k: ZoneState.from_dict(v) for k, v in payload.get("zones", {}).items()}
         self.alerts = [Alert(**a) for a in payload.get("alerts", [])]
         self.tickets = [MaintenanceTicket(**t) for t in payload.get("tickets", [])]
+        self.incidents = [IncidentIntelligence(**i) for i in payload.get("incidents", [])]
+        if not self.incidents and self.alerts:
+            for a in self.alerts:
+                d = self.devices.get(a.device_id)
+                self.incidents.append(IncidentIntelligence(
+                    incident_id=f"INC-{a.id}",
+                    device_id=a.device_id,
+                    device_type=a.device_type,
+                    zone=a.zone,
+                    terminal=d.terminal if d else "Terminal 1",
+                    kind=a.kind,
+                    severity=a.severity,
+                    priority=a.priority,
+                    leak_confidence=a.leak_confidence,
+                    sensor_confidence=a.sensor_confidence,
+                    root_cause=a.root_cause,
+                    root_cause_confidence=a.root_cause_confidence,
+                    estimated_loss_lpd=a.estimated_daily_loss_liters,
+                    estimated_monthly_loss_liters=a.estimated_monthly_loss_liters,
+                    sla_minutes=a.sla_minutes,
+                    sla_remaining_seconds=a.sla_remaining_seconds,
+                    sla_breach_risk=a.sla_breach_risk,
+                    assigned_technician=a.assigned_technician or "Arjun Sharma (Plumbing)",
+                    recommended_action=a.recommended_action,
+                    status=a.status,
+                    before_state=a.before_state or {"flow_lpm": 1.5, "pressure_bar": 2.2, "anomaly_score": 85, "leak_confidence": 0.95},
+                    after_state=a.after_state,
+                    timeline=list(a.timeline),
+                    created_at=a.created_at,
+                    resolved_at=a.resolved_at,
+                ))
         self.scenarios = payload.get("scenarios", {})
         self.cleaning_events = payload.get("cleaning_events", [])
         self.ticket_seq = payload.get("ticket_seq", 10284)
@@ -287,6 +358,7 @@ class Store:
         """Wipe dynamic state (keeps the generated fleet)."""
         self.alerts.clear()
         self.tickets.clear()
+        self.incidents.clear()
         self.telemetry.clear()
         self.timeseries.clear()
         self.scenarios.clear()

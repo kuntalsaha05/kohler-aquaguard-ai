@@ -37,9 +37,15 @@
     <button class="btn" data-scenario="occupancy-spike">👥 Occupancy surge</button>
     <button class="btn btn-ghost" id="btn-stop">■ Stop</button>
     <span class="spacer"></span>
+    <button class="btn btn-ghost" id="btn-benchmarks">📊 Research Benchmarks</button>
     <button class="btn btn-ghost" id="btn-report">📄 Daily Report</button>
     <button class="btn btn-primary" id="btn-demo">▶ Run guided demo</button>
   </nav>
+
+  <section class="facility-overview-bar" id="overview-bar">
+    <div class="health-summary" id="health-summary"></div>
+    <div class="heatmap-summary" id="heatmap-summary"></div>
+  </section>
 
   <section class="kpis" id="kpi-row"></section>
 
@@ -82,8 +88,10 @@
         <button class="chip" data-q="Where are we wasting the most water today?">Most water wasted?</button>
         <button class="chip" data-q="What should I fix first?">Fix first?</button>
         <button class="chip" data-q="Why is FV-182 critical?">Why FV-182?</button>
+        <button class="chip" data-q="Explain facility health hierarchy">Facility Health</button>
+        <button class="chip" data-q="Show water waste heatmap">Waste Heatmap</button>
+        <button class="chip" data-q="Show research benchmarks">Benchmarks</button>
         <button class="chip" data-q="Generate daily facility report">Daily Report</button>
-        <button class="chip" data-q="What is our sustainability impact?">Savings?</button>
       </div>
       <form class="chat-input" id="chat-form">
         <input id="chat-input" type="text" placeholder="Ask AquaGuard AI…" autocomplete="off" />
