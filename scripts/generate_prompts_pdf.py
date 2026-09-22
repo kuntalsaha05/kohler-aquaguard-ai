@@ -15,7 +15,7 @@ from reportlab.platypus import (
 )
 from reportlab.pdfgen import canvas
 
-PDF_PATH = os.path.join("docs", "KOHLER_AquaGuard_Prompts.pdf")
+PDF_PATH = os.path.join("docs", "AquaGuard_Prompts.pdf")
 
 # High-Contrast Professional Palette
 PRIMARY_TEXT = colors.HexColor("#0F172A")    # Deep Slate / Charcoal
@@ -58,10 +58,10 @@ class NumberedCanvas(canvas.Canvas):
         # Top Header Text
         self.setFont("Helvetica-Bold", 8)
         self.setFillColor(KOHLER_BLUE)
-        self.drawString(0.5 * inch, 10.55 * inch, "KOHLER AQUAGUARD AI")
+        self.drawString(0.5 * inch, 10.55 * inch, "AQUAGUARD AI")
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(2.1 * inch, 10.55 * inch, "·  Track 2 Smart Facility & Sustainability Manager  ·  AI Prompts & Reasoning")
+        self.drawString(1.7 * inch, 10.55 * inch, "·  Track 2 Smart Facility & Sustainability Manager  ·  AI Prompts & Reasoning")
 
         # Bottom Footer Rule
         self.setStrokeColor(BORDER_COLOR)
@@ -71,7 +71,7 @@ class NumberedCanvas(canvas.Canvas):
         # Bottom Footer Text
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(0.5 * inch, 0.45 * inch, "CONFIDENTIAL  ·  KOHLER-MITWPU INNOVATION HACKATHON TRACK 2  ·  RESEARCH SPECIFICATION")
+        self.drawString(0.5 * inch, 0.45 * inch, "CONFIDENTIAL  ·  INNOVATION HACKATHON TRACK 2  ·  RESEARCH SPECIFICATION")
 
         page_str = f"Page {self._pageNumber} of {total_pages}"
         self.setFont("Helvetica-Bold", 8)
@@ -136,12 +136,12 @@ def generate_pdf():
     # =========================================================================
     # PAGE 1: AI System Overview
     # =========================================================================
-    story.append(Paragraph("KOHLER AquaGuard AI", title_style))
+    story.append(Paragraph("AquaGuard AI", title_style))
     story.append(Paragraph("AI Prompt &amp; Reasoning Architecture Documentation · Track 2: Smart Facility &amp; Sustainability Manager", subtitle_style))
     story.append(Spacer(1, 10))
 
     p1_desc = Paragraph(
-        "KOHLER AquaGuard AI couples high-frequency IoT hydraulic telemetry with a dual-layer "
+        "AquaGuard AI couples high-frequency IoT hydraulic telemetry with a dual-layer "
         "deterministic detection engine and a zero-hallucination ReAct reasoning layer. Designed for "
         "mission-critical aviation infrastructure (Pune International Airport PNQ), the system eliminates "
         "water wastage through sub-second anomaly detection, physics-based fault classification, "
@@ -888,6 +888,11 @@ Generate an automated emergency CAD dispatch escalation payload:
 
     doc.build(story, canvasmaker=NumberedCanvas)
     print(f"Successfully generated {PDF_PATH} ({os.path.getsize(PDF_PATH)} bytes)")
+
+    # Also save copy as KOHLER_AquaGuard_Prompts.pdf for backward compatibility
+    import shutil
+    shutil.copyfile(PDF_PATH, os.path.join("docs", "KOHLER_AquaGuard_Prompts.pdf"))
+    print("Also copied to docs/KOHLER_AquaGuard_Prompts.pdf")
 
 
 if __name__ == "__main__":

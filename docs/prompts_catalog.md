@@ -1,4 +1,4 @@
-# KOHLER AquaGuard AI — Comprehensive AI Prompts & Workflow Catalog
+# AquaGuard AI — Comprehensive AI Prompts & Workflow Catalog
 
 > **Track 2: Smart Facility & Sustainability Manager**  
 > Complete documentation of runtime system instructions, reasoning prompts, developer meta-prompts used to build the platform, and custom facility intelligence prompts.

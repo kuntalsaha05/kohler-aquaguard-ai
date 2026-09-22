@@ -21,7 +21,7 @@ def test_upgrade_suite():
         print("Testing /api/reports/executive/html...")
         html_resp = client.get("/api/reports/executive/html")
         assert html_resp.status_code == 200
-        assert "KOHLER" in html_resp.text
+        assert "AquaGuard" in html_resp.text
         assert "OFFICIAL AUDIT LEDGER" in html_resp.text
         print("  [PASS] Executive HTML report rendered successfully")
 

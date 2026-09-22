@@ -1,4 +1,4 @@
-# KOHLER AquaGuard AI — Empirical Evaluation & Benchmark Report
+# AquaGuard AI — Empirical Evaluation & Benchmark Report
 
 **Evaluation Version:** `v1.2.0-research`  
 **Dataset:** Simulated Airport Digital Twin (Pune International Airport PNQ — 97 instrumented fixtures, 180 days synthetic operational telemetry, 2,500 evaluated test instances).  

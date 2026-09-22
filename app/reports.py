@@ -158,7 +158,7 @@ def generate_executive_report_html(store) -> str:
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>KOHLER AquaGuard AI — Executive Audit Report {data['report_id']}</title>
+    <title>AquaGuard AI — Executive Audit Report {data['report_id']}</title>
     <style>
         @page {{
             size: A4;
@@ -282,13 +282,13 @@ def generate_executive_report_html(store) -> str:
 </head>
 <body>
     <div class="no-print">
-        <div><strong>KOHLER Official Executive Audit Document</strong> — Click Print to export as PDF.</div>
+        <div><strong>Official Executive Audit Document</strong> — Click Print to export as PDF.</div>
         <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
     </div>
 
     <div class="header">
         <div>
-            <div class="logo">KOHLER <span>AquaGuard AI</span></div>
+            <div class="logo">AquaGuard <span>AI</span></div>
             <div style="font-size:14px;color:#8B96A5;margin-top:4px;">Enterprise Smart Restroom & Water Sustainability Audit Brief</div>
             <div style="font-size:12px;color:#00A3E0;margin-top:2px;">Facility: {data['facility_name']}</div>
         </div>

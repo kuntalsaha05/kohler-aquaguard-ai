@@ -15,13 +15,13 @@ from reportlab.platypus import (
 )
 from reportlab.pdfgen import canvas
 
-PDF_PATH = os.path.join("presentation", "KOHLER_AquaGuard_AI.pdf")
+PDF_PATH = os.path.join("presentation", "AquaGuard_AI.pdf")
 
 # Ultra-High Contrast Executive Palette
 PRIMARY_TEXT = colors.HexColor("#0F172A")    # Deep Slate
 TITLE_COLOR = colors.HexColor("#0A2540")     # Deep Corporate Navy
 MUTED_TEXT = colors.HexColor("#475569")      # Dark Slate Muted
-KOHLER_BLUE = colors.HexColor("#0077B6")     # Kohler Blue
+KOHLER_BLUE = colors.HexColor("#0077B6")     # Accent Navy Blue
 BORDER_COLOR = colors.HexColor("#CBD5E1")    # Subtle Border
 CARD_BG = colors.HexColor("#F8FAFC")         # Crisp Light Background
 ALERT_RED = colors.HexColor("#DC2626")       # Alert Red
@@ -57,10 +57,10 @@ class PresentationCanvas(canvas.Canvas):
         # Header Text
         self.setFont("Helvetica-Bold", 9)
         self.setFillColor(KOHLER_BLUE)
-        self.drawString(0.5 * inch, 8.12 * inch, "KOHLER AQUAGUARD AI")
+        self.drawString(0.5 * inch, 8.12 * inch, "AQUAGUARD AI")
         self.setFont("Helvetica", 9)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(2.3 * inch, 8.12 * inch, "·  Track 2 Smart Facility & Sustainability Manager  ·  Executive Pitch Deck")
+        self.drawString(1.7 * inch, 8.12 * inch, "·  Track 2 Smart Facility & Sustainability Manager  ·  Executive Pitch Deck")
 
         # Footer Rule
         self.setStrokeColor(BORDER_COLOR)
@@ -70,7 +70,7 @@ class PresentationCanvas(canvas.Canvas):
         # Footer Text
         self.setFont("Helvetica", 8)
         self.setFillColor(MUTED_TEXT)
-        self.drawString(0.5 * inch, 0.38 * inch, "KOHLER-MITWPU INNOVATION HACKATHON  ·  TRACK 2 FINAL DELIVERABLE  ·  PUNE AIRPORT DEPLOYMENT")
+        self.drawString(0.5 * inch, 0.38 * inch, "INNOVATION HACKATHON  ·  TRACK 2 FINAL DELIVERABLE  ·  PUNE AIRPORT DEPLOYMENT")
 
         slide_str = f"Slide {self._pageNumber} of {total_pages}"
         self.setFont("Helvetica-Bold", 8)
@@ -79,14 +79,15 @@ class PresentationCanvas(canvas.Canvas):
         self.restoreState()
 
 
-def generate_deck():
+def build_presentation_pdf():
+    os.makedirs("presentation", exist_ok=True)
     doc = SimpleDocTemplate(
         PDF_PATH,
         pagesize=landscape(letter),
         leftMargin=0.5 * inch,
         rightMargin=0.5 * inch,
-        topMargin=0.65 * inch,
-        bottomMargin=0.65 * inch,
+        topMargin=0.8 * inch,
+        bottomMargin=0.7 * inch,
     )
 
     styles = getSampleStyleSheet()
@@ -101,7 +102,7 @@ def generate_deck():
     # =========================================================================
     # SLIDE 1: Problem + Solution
     # =========================================================================
-    story.append(Paragraph("KOHLER AquaGuard AI", slide_title))
+    story.append(Paragraph("AquaGuard AI", slide_title))
     story.append(Paragraph("Smart Facility &amp; Sustainability Manager  ·  Commercial Airport Operations", slide_sub))
     story.append(Spacer(1, 14))
 
@@ -405,7 +406,10 @@ def generate_deck():
 
     doc.build(story, canvasmaker=PresentationCanvas)
     print(f"Successfully generated {PDF_PATH} ({os.path.getsize(PDF_PATH)} bytes)")
+    # Also save copy as KOHLER_AquaGuard_AI.pdf for backward compatibility
+    import shutil
+    shutil.copyfile(PDF_PATH, os.path.join("presentation", "KOHLER_AquaGuard_AI.pdf"))
 
 
 if __name__ == "__main__":
-    generate_deck()
+    build_presentation_pdf()

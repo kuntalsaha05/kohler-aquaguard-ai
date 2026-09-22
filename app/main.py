@@ -87,7 +87,7 @@ async def _simulation_loop() -> None:
 
 
 app = FastAPI(
-    title="KOHLER AquaGuard AI",
+    title="AquaGuard AI",
     description="Smart Facility & Sustainability Manager — detect, diagnose, prioritize, dispatch, conserve.",
     version="1.0.0",
     lifespan=lifespan,
