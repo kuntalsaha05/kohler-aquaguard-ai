@@ -62,6 +62,7 @@ It transforms conventional commercial washrooms into an autonomous, closed-loop 
 | **3. Presentation Deck** | 4-Slide Executive Pitch Deck in widescreen format | [`presentation/AquaGuard_AI.pdf`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/presentation/AquaGuard_AI.pdf) |
 | **4. Video Demonstration** | Official demonstration video with 2m30s walkthrough script and timecodes | [**Watch on Google Drive**](https://drive.google.com/file/d/1LHxz6cDNqUZJG2bPqfCbQhXoR5tncc0D/view?usp=sharing) &middot; [`video/demo-link.md`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/video/demo-link.md) |
 | **5. Empirical Evaluation** | 2,500 sample benchmark evidence, confusion matrix, latencies, and ablation study | [`docs/evaluation.md`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/docs/evaluation.md) |
+| **6. Interview Guide** | Comprehensive evaluation rubric strategy, AI/ML Q&A, and live demo script | [`docs/INTERVIEW_PREPARATION_GUIDE.md`](file:///c:/Users/sahak/OneDrive/Documents/AIDS/Personal/Kohler/kohler-aquaguard-ai/docs/INTERVIEW_PREPARATION_GUIDE.md) |
 
 ---
 
